@@ -622,3 +622,284 @@ a {
 /* =========================================================
    End — Sprint 10.2
    ========================================================= */
+
+   /* =========================================================
+   Sprint 10.3 — Trust + Cards
+   Trust Bar
+   ========================================================= */
+
+.trust {
+    padding: var(--space-6) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.trust-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.trust-list li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-medium);
+    text-align: center;
+}
+
+.trust-list li::first-letter {
+    color: var(--color-accent);
+}
+
+/* Trust Bar — Tablet */
+@media (max-width: 1023px) {
+    .trust-list {
+        gap: var(--space-4);
+    }
+}
+
+/* Trust Bar — Mobile */
+@media (max-width: 767px) {
+    .trust {
+        padding: var(--space-5) 0;
+    }
+
+    .trust-list {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .trust-list li {
+        justify-content: flex-start;
+        text-align: left;
+    }
+}
+
+
+/* =========================================================
+   Sprint 10.3 — Audience Cards
+   ========================================================= */
+
+.audience-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+}
+
+.section-heading {
+    max-width: var(--max-text-width);
+    margin-bottom: var(--space-8);
+}
+
+.section-eyebrow {
+    display: inline-block;
+    margin-bottom: var(--space-2);
+    color: var(--color-accent);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.02em;
+}
+
+.section-heading h2 {
+    margin-bottom: var(--space-4);
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.audience-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-6);
+}
+
+.audience-card {
+    padding: var(--card-padding);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.audience-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+}
+
+.audience-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-4);
+    background: var(--color-accent-soft);
+    border-radius: var(--radius-button);
+    color: var(--color-accent);
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.audience-card h3 {
+    margin-bottom: var(--space-2);
+}
+
+.audience-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Audience Cards — Tablet */
+@media (max-width: 1023px) {
+    .audience-section {
+        padding: var(--space-10) 0;
+    }
+
+    .audience-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Audience Cards — Mobile */
+@media (max-width: 767px) {
+    .audience-section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .section-heading {
+        margin-bottom: var(--space-6);
+    }
+
+    .audience-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .audience-card {
+        padding: var(--space-5);
+    }
+}
+
+
+/* =========================================================
+   Sprint 10.3 — Features Cards
+   ========================================================= */
+
+.features-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+    background: var(--color-surface);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-6);
+}
+
+.feature-card {
+    grid-column: span 2;
+}
+
+.feature-card {
+    padding: var(--card-padding);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+/* Center the two cards in the final row */
+/* Center the final two cards */
+.feature-card:nth-child(4) {
+    grid-column: 2 / span 2;
+}
+
+.feature-card:nth-child(5) {
+    grid-column: 4 / span 2;
+}
+
+.feature-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-4);
+    background: var(--color-accent-soft);
+    border-radius: var(--radius-button);
+    color: var(--color-accent);
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.feature-card h3 {
+    margin-bottom: var(--space-2);
+}
+
+.feature-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Features Cards — Tablet */
+@media (max-width: 1023px) {
+    .features-section {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .feature-card:nth-child(4),
+    .feature-card:nth-child(5) {
+        grid-column: auto;
+        margin-left: 0;
+        transform: none;
+    }
+}
+
+/* Features Cards — Mobile */
+@media (max-width: 767px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .feature-card {
+        grid-column: 1 / -1;
+        padding: var(--space-5);
+    }
+
+    .feature-card:nth-child(4),
+    .feature-card:nth-child(5) {
+        grid-column: 1 / -1;
+        margin-left: 0;
+        transform: none;
+    }
+}
