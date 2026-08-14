@@ -903,3 +903,335 @@ a {
         transform: none;
     }
 }
+
+
+/* =========================================================
+   Sprint 10.4 — Pricing + Process
+   Pricing Section — Foundation
+   ========================================================= */
+
+.pricing-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    align-items: stretch;
+}
+
+.pricing-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 24px 24px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.pricing-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+}
+
+.pricing-card-header {
+    margin-bottom: 24px;
+}
+
+.pricing-card h3 {
+    margin-bottom: 8px;
+}
+
+.pricing-description {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.pricing-price {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 24px;
+}
+
+.price-currency {
+    color: var(--color-text-primary);
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.price-amount {
+    color: var(--color-text-primary);
+    font-size: 48px;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.price-period {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.pricing-features {
+    display: grid;
+    gap: 12px;
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+}
+
+.pricing-features li {
+    position: relative;
+    padding-left: 24px;
+    color: var(--color-text-secondary);
+}
+
+.pricing-features li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--color-accent);
+    font-weight: var(--font-weight-semibold);
+}
+
+.pricing-card .btn {
+    width: 100%;
+    margin-top: auto;
+}
+
+.pricing-note {
+    margin: 16px 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.pricing-price-custom {
+    min-height: 48px;
+}
+
+.price-custom-text {
+    color: var(--color-text-primary);
+    font-size: 36px;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+/* Pricing — Tablet */
+@media (max-width: 1023px) {
+    .pricing-section {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .pricing-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pricing-card {
+        padding: 28px 24px 24px;
+    }
+}
+
+/* Pricing — Mobile */
+@media (max-width: 767px) {
+    .pricing-section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .pricing-card {
+        padding: 24px 20px;
+    }
+
+    .pricing-card-header {
+        margin-bottom: 20px;
+    }
+
+    .pricing-price {
+        margin-bottom: 20px;
+    }
+
+    .price-amount {
+        font-size: 44px;
+    }
+
+    .pricing-features {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .pricing-note {
+        margin-top: 12px;
+    }
+}
+
+/* Pricing — Section Heading Spacing */
+.pricing-section .section-heading {
+    margin-bottom: 32px;
+}
+
+
+/* =========================================================
+   Sprint 10.4B — Featured Monthly Card
+   Recommended Badge
+   ========================================================= */
+
+.pricing-card-featured {
+    border-color: var(--color-accent);
+    padding-top: 56px;
+}
+
+.pricing-badge {
+    position: absolute;
+    top: 16px;
+    left: 24px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    background: var(--color-accent-soft);
+    border-radius: 999px;
+    color: var(--color-accent);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+}
+
+.pricing-card-featured:hover {
+    border-color: var(--color-accent);
+}
+
+/* Featured Pricing Card — Mobile */
+@media (max-width: 767px) {
+    .pricing-card-featured {
+        padding-top: 56px;
+    }
+
+    .pricing-badge {
+        top: 16px;
+        left: 20px;
+    }
+}
+
+/* =========================================================
+   Sprint 10.4C — Pricing CTA Refinement
+   ========================================================= */
+
+.pricing-card .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    width: 100%;
+    text-align: center;
+}
+
+.pricing-card .btn-primary,
+.pricing-card .btn-secondary {
+    flex-shrink: 0;
+}
+
+/* =========================================================
+   Sprint 10.4D — How It Works / Process
+   ========================================================= */
+
+.process-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+    background: var(--color-surface);
+}
+
+.process-section .section-heading {
+    margin-bottom: 32px;
+}
+
+.process-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.process-card {
+    padding: 24px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.process-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+}
+
+.process-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 24px;
+    background: var(--color-accent-soft);
+    border-radius: var(--radius-button);
+    color: var(--color-accent);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semibold);
+}
+
+.process-card h3 {
+    margin-bottom: 8px;
+}
+
+.process-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Process — Tablet */
+@media (max-width: 1023px) {
+    .process-section {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .process-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Process — Mobile */
+@media (max-width: 767px) {
+    .process-section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .process-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .process-card {
+        padding: 20px;
+    }
+}
