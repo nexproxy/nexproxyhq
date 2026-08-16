@@ -1235,3 +1235,326 @@ a {
         padding: 20px;
     }
 }
+
+
+/* =========================================================
+   Sprint 10.5A — FAQ Foundation
+   ========================================================= */
+
+.faq-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+}
+
+.faq-section .section-heading {
+    margin-bottom: 32px;
+}
+
+.faq-list {
+    display: grid;
+    gap: 16px;
+    max-width: var(--max-text-width);
+}
+
+.faq-item {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.faq-item:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-card);
+}
+
+.faq-item summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    padding: 20px 56px 20px 24px;
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.faq-item summary::after {
+    content: "+";
+    position: absolute;
+    top: 50%;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--color-accent);
+    font-size: 22px;
+    font-weight: var(--font-weight-medium);
+    line-height: 1;
+    transform: translateY(-50%);
+}
+
+.faq-item[open] summary::after {
+    content: "−";
+}
+
+.faq-answer {
+    padding: 0 24px 24px;
+}
+
+.faq-answer p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.faq-answer p + p {
+    margin-top: 16px;
+}
+
+/* FAQ — Tablet */
+@media (max-width: 1023px) {
+    .faq-section {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+}
+
+/* FAQ — Mobile */
+@media (max-width: 767px) {
+    .faq-section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .faq-list {
+        gap: 12px;
+    }
+
+    .faq-item summary {
+        min-height: 60px;
+        padding: 18px 52px 18px 20px;
+    }
+
+    .faq-item summary::after {
+        right: 20px;
+    }
+
+    .faq-answer {
+        padding: 0 20px 20px;
+    }
+}
+
+/* =========================================================
+   Sprint 10.5B — Contact CTA
+   ========================================================= */
+
+.contact-section {
+    padding-top: 96px;
+    padding-bottom: 96px;
+    background: var(--color-surface);
+}
+
+.contact-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+    padding: 48px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+}
+
+.contact-text {
+    max-width: 720px;
+}
+
+.contact-text h2 {
+    margin-bottom: 16px;
+}
+
+.contact-text p {
+    margin: 0;
+    max-width: var(--max-text-width);
+    color: var(--color-text-secondary);
+}
+
+.contact-action {
+    flex-shrink: 0;
+}
+
+.contact-action .btn {
+    min-width: 180px;
+}
+
+/* Contact CTA — Tablet */
+@media (max-width: 1023px) {
+    .contact-section {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .contact-content {
+        gap: 32px;
+        padding: 40px;
+    }
+}
+
+/* Contact CTA — Mobile */
+@media (max-width: 767px) {
+    .contact-section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .contact-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 32px;
+        padding: 32px 24px;
+    }
+
+    .contact-action {
+        width: 100%;
+    }
+
+    .contact-action .btn {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   Sprint 10.5C — Footer
+   ========================================================= */
+
+.site-footer {
+    padding-top: 64px;
+    padding-bottom: 24px;
+    background: var(--color-white);
+    border-top: 1px solid var(--color-border);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+    padding-bottom: 48px;
+}
+
+.footer-brand {
+    max-width: 360px;
+}
+
+.footer-logo {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--color-text-primary);
+    font-family: var(--font-family-heading);
+    font-size: 24px;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.footer-brand p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.footer-heading {
+    margin: 0 0 16px;
+    color: var(--color-text-primary);
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.5;
+}
+
+.footer-links {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.footer-links a {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.footer-links a:hover {
+    color: var(--color-accent);
+}
+
+.footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border);
+}
+
+.footer-bottom p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+/* Footer — Tablet */
+@media (max-width: 1023px) {
+    .site-footer {
+        padding-top: 56px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 40px 32px;
+        padding-bottom: 40px;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+        max-width: 560px;
+    }
+}
+
+/* Footer — Mobile */
+@media (max-width: 767px) {
+    .site-footer {
+        padding-top: 48px;
+        padding-bottom: 20px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding-bottom: 40px;
+    }
+
+    .footer-brand {
+        grid-column: auto;
+        max-width: none;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding-top: 20px;
+    }
+}
