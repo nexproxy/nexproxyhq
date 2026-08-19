@@ -765,7 +765,7 @@ a {
 /* Audience Cards — Tablet */
 @media (max-width: 1023px) {
     .audience-section {
-        padding: var(--space-10) 0;
+        padding: 80px 0;
     }
 
     .audience-grid {
@@ -1041,13 +1041,19 @@ a {
     .pricing-card {
         padding: 28px 24px 24px;
     }
+
+    .pricing-card:nth-child(3) {
+        grid-column: 1 / -1;
+        width: calc(50% - 12px);
+        justify-self: center;
+    }
 }
 
 /* Pricing — Mobile */
 @media (max-width: 767px) {
     .pricing-section {
         padding-top: 64px;
-        padding-bottom: 64px;
+        padding-bottom: 64px;    
     }
 
     .pricing-grid {
@@ -1078,6 +1084,12 @@ a {
 
     .pricing-note {
         margin-top: 12px;
+    }
+
+    .pricing-card:nth-child(3) {
+        grid-column: auto;
+        width: 100%;
+        justify-self: stretch;
     }
 }
 
