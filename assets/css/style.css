@@ -1,5 +1,5 @@
 /* =========================================================
-   NexProxy — CSS Foundation
+   NexProxy â€” CSS Foundation
    Sprint 10.1
    ========================================================= */
 
@@ -44,7 +44,7 @@
   --line-body: 1.6;
   --line-small: 1.5;
 
-  /* Spacing — 8px system */
+  /* Spacing â€” 8px system */
   --space-1: 8px;
   --space-2: 16px;
   --space-3: 24px;
@@ -302,12 +302,12 @@ a {
 
 
 /* =========================================================
-   End — Sprint 10.1 Foundation
+   End â€” Sprint 10.1 Foundation
    ========================================================= */
 
 
    /* =========================================================
-   Sprint 10.2 — Navigation + Hero
+   Sprint 10.2 â€” Navigation + Hero
    ========================================================= */
 
 
@@ -355,14 +355,15 @@ a {
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
+}
 
-  font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: var(--weight-bold);
-  line-height: 1;
-
-  color: var(--color-text-primary);
+.logo img {
+  display: block;
+  width: auto;
+  height: 32px;
 }
 
 .nav-menu {
@@ -686,11 +687,11 @@ a {
 
 
 /* =========================================================
-   End — Sprint 10.2
+   End â€” Sprint 10.2
    ========================================================= */
 
    /* =========================================================
-   Sprint 10.3 — Trust + Cards
+   Sprint 10.3 â€” Trust + Cards
    Trust Bar
    ========================================================= */
 
@@ -725,14 +726,14 @@ a {
     color: var(--color-accent);
 }
 
-/* Trust Bar — Tablet */
+/* Trust Bar â€” Tablet */
 @media (max-width: 1023px) {
     .trust-list {
         gap: var(--space-4);
     }
 }
 
-/* Trust Bar — Mobile */
+/* Trust Bar â€” Mobile */
 @media (max-width: 767px) {
     .trust {
         padding: var(--space-5) 0;
@@ -751,7 +752,7 @@ a {
 
 
 /* =========================================================
-   Sprint 10.3 — Audience Cards
+   Sprint 10.3 â€” Audience Cards
    ========================================================= */
 
 .audience-section {
@@ -828,7 +829,7 @@ a {
     color: var(--color-text-secondary);
 }
 
-/* Audience Cards — Tablet */
+/* Audience Cards â€” Tablet */
 @media (max-width: 1023px) {
     .audience-section {
         padding: 80px 0;
@@ -839,7 +840,7 @@ a {
     }
 }
 
-/* Audience Cards — Mobile */
+/* Audience Cards â€” Mobile */
 @media (max-width: 767px) {
     .audience-section {
         padding-top: 64px;
@@ -862,7 +863,7 @@ a {
 
 
 /* =========================================================
-   Sprint 10.3 — Features Cards
+   Sprint 10.3 â€” Features Cards
    ========================================================= */
 
 .features-section {
@@ -931,7 +932,7 @@ a {
     color: var(--color-text-secondary);
 }
 
-/* Features Cards — Tablet */
+/* Features Cards â€” Tablet */
 @media (max-width: 1023px) {
     .features-section {
         padding-top: 80px;
@@ -950,7 +951,7 @@ a {
     }
 }
 
-/* Features Cards — Mobile */
+/* Features Cards â€” Mobile */
 @media (max-width: 767px) {
     .features-grid {
         grid-template-columns: 1fr;
@@ -972,8 +973,8 @@ a {
 
 
 /* =========================================================
-   Sprint 10.4 — Pricing + Process
-   Pricing Section — Foundation
+   Sprint 10.4 â€” Pricing + Process
+   Pricing Section â€” Foundation
    ========================================================= */
 
 .pricing-section {
@@ -1061,7 +1062,7 @@ a {
 }
 
 .pricing-features li::before {
-    content: "✓";
+    content: "\2713";
     position: absolute;
     left: 0;
     top: 0;
@@ -1093,7 +1094,7 @@ a {
     line-height: 1;
 }
 
-/* Pricing — Tablet */
+/* Pricing â€” Tablet */
 @media (max-width: 1023px) {
     .pricing-section {
         padding-top: 80px;
@@ -1115,7 +1116,7 @@ a {
     }
 }
 
-/* Pricing — Mobile */
+/* Pricing â€” Mobile */
 @media (max-width: 767px) {
     .pricing-section {
         padding-top: 64px;
@@ -1159,14 +1160,14 @@ a {
     }
 }
 
-/* Pricing — Section Heading Spacing */
+/* Pricing â€” Section Heading Spacing */
 .pricing-section .section-heading {
     margin-bottom: 32px;
 }
 
 
 /* =========================================================
-   Sprint 10.4B — Featured Monthly Card
+   Sprint 10.4B â€” Featured Monthly Card
    Recommended Badge
    ========================================================= */
 
@@ -1195,7 +1196,7 @@ a {
     border-color: var(--color-accent);
 }
 
-/* Featured Pricing Card — Mobile */
+/* Featured Pricing Card â€” Mobile */
 @media (max-width: 767px) {
     .pricing-card-featured {
         padding-top: 56px;
@@ -1208,7 +1209,7 @@ a {
 }
 
 /* =========================================================
-   Sprint 10.4C — Pricing CTA Refinement
+   Sprint 10.4C â€” Pricing CTA Refinement
    ========================================================= */
 
 .pricing-card .btn {
@@ -1226,7 +1227,7 @@ a {
 }
 
 /* =========================================================
-   Sprint 10.4D — How It Works / Process
+   Sprint 10.4D â€” How It Works / Process
    ========================================================= */
 
 .process-section {
@@ -1285,7 +1286,7 @@ a {
     color: var(--color-text-secondary);
 }
 
-/* Process — Tablet */
+/* Process â€” Tablet */
 @media (max-width: 1023px) {
     .process-section {
         padding-top: 80px;
@@ -1297,7 +1298,7 @@ a {
     }
 }
 
-/* Process — Mobile */
+/* Process â€” Mobile */
 @media (max-width: 767px) {
     .process-section {
         padding-top: 64px;
@@ -1316,7 +1317,7 @@ a {
 
 
 /* =========================================================
-   Sprint 10.5A — FAQ Foundation
+   Sprint 10.5A â€” FAQ Foundation
    ========================================================= */
 
 .faq-section {
@@ -1383,7 +1384,7 @@ a {
 }
 
 .faq-item[open] summary::after {
-    content: "−";
+    content: "\2212";
 }
 
 .faq-answer {
@@ -1399,7 +1400,7 @@ a {
     margin-top: 16px;
 }
 
-/* FAQ — Tablet */
+/* FAQ â€” Tablet */
 @media (max-width: 1023px) {
     .faq-section {
         padding-top: 80px;
@@ -1407,7 +1408,7 @@ a {
     }
 }
 
-/* FAQ — Mobile */
+/* FAQ â€” Mobile */
 @media (max-width: 767px) {
     .faq-section {
         padding-top: 64px;
@@ -1433,7 +1434,7 @@ a {
 }
 
 /* =========================================================
-   Sprint 10.5B — Contact CTA
+   Sprint 10.5B â€” Contact CTA
    ========================================================= */
 
 .contact-section {
@@ -1475,7 +1476,7 @@ a {
     min-width: 180px;
 }
 
-/* Contact CTA — Tablet */
+/* Contact CTA â€” Tablet */
 @media (max-width: 1023px) {
     .contact-section {
         padding-top: 80px;
@@ -1488,7 +1489,7 @@ a {
     }
 }
 
-/* Contact CTA — Mobile */
+/* Contact CTA â€” Mobile */
 @media (max-width: 767px) {
     .contact-section {
         padding-top: 64px;
@@ -1513,7 +1514,7 @@ a {
 
 
 /* =========================================================
-   Sprint 10.5C — Footer
+   Sprint 10.5C â€” Footer
    ========================================================= */
 
 .site-footer {
@@ -1593,7 +1594,7 @@ a {
     font-size: var(--font-size-small);
 }
 
-/* Footer — Tablet */
+/* Footer â€” Tablet */
 @media (max-width: 1023px) {
     .site-footer {
         padding-top: 56px;
@@ -1611,7 +1612,7 @@ a {
     }
 }
 
-/* Footer — Mobile */
+/* Footer â€” Mobile */
 @media (max-width: 767px) {
     .site-footer {
         padding-top: 48px;
