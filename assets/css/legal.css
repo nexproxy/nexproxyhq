@@ -135,3 +135,13 @@
     font-size: 1.25rem;
   }
 }
+
+/* Buttons inside legal content */
+.legal-content .btn-primary {
+    color: var(--color-white);
+    text-decoration: none;
+}
+
+.legal-content .btn-primary:hover {
+    color: var(--color-white);
+}
