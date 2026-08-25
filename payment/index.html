@@ -138,26 +138,50 @@
 
                     <!-- Payment Status -->
 
-                    <section class="legal-section">
+                    <!-- Payment Status -->
 
+                    <section class="legal-section">
                         <h2>
                             Payment Status
                         </h2>
 
-                        <p>
-                            Your order is currently waiting for payment.
-                        </p>
-
                         <div
-                            class="payment-notice"
-                            role="status"
+                            class="payment-workflow"
+                            aria-live="polite"
                         >
-                            Crypto payment instructions will be provided
-                            here once the payment gateway is connected.
+                            <div class="payment-status-card">
+                                <span class="payment-status-label">
+                                    Current Status
+                                </span>
+
+                                <p
+                                    id="payment-status-value"
+                                    class="payment-status-value"
+                                >
+                                    Awaiting Payment
+                                </p>
+
+                                <p
+                                    id="payment-status-message"
+                                    class="payment-help-text"
+                                >
+                                    Your order is ready for payment.
+                                    Payment instructions will appear here
+                                    when an approved payment method is available.
+                                </p>
+
+                                <div
+                                    id="payment-action"
+                                    class="payment-action"
+                                >
+                                    <p class="payment-help-text">
+                                        No payment action is required yet.
+                                        Please keep your Order ID for reference.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-
                     </section>
-
 
                     <!-- Processing Information -->
 

@@ -145,3 +145,84 @@
 .legal-content .btn-primary:hover {
     color: var(--color-white);
 }
+
+/* =========================================================
+   Payment Workflow Foundation
+   Sprint 16.1
+   ========================================================= */
+
+.payment-workflow {
+    margin-top: var(--space-6);
+}
+
+.payment-status-card {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+}
+
+.payment-status-label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.payment-status-value {
+    margin: 0;
+    color: var(--color-heading);
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.payment-action {
+    margin-top: var(--space-5);
+}
+
+.payment-action .btn-primary {
+    color: var(--color-white);
+    text-decoration: none;
+}
+
+.payment-action .btn-primary:hover {
+    color: var(--color-white);
+}
+
+.payment-reference {
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-input);
+    background: var(--color-background);
+    color: var(--color-text);
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.payment-reference:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.payment-help-text {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    .payment-status-card {
+        padding: var(--space-4);
+    }
+
+    .payment-action {
+        margin-top: var(--space-4);
+    }
+}
