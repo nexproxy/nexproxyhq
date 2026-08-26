@@ -123,7 +123,7 @@ function initReviewActions() {
         return;
     }
 
-    confirmButton.addEventListener("click", () => {
+    confirmButton.addEventListener("click", async () => {
         const orderData = getStoredOrder();
 
         if (!orderData) {
@@ -140,12 +140,70 @@ function initReviewActions() {
             paymentStatus: "UNPAID"
         };
 
-        sessionStorage.setItem(
-            "nexproxyOrder",
-            JSON.stringify(updatedOrder)
-        );
+        confirmButton.disabled = true;
+        confirmButton.setAttribute("aria-busy", "true");
 
-        window.location.href = "../../payment/";
+        try {
+            const supabasePublishableKey =
+                window.NEXPROXY_SUPABASE_PUBLISHABLE_KEY;
+
+            if (!supabasePublishableKey) {
+                throw new Error(
+                    "Supabase configuration is unavailable."
+                );
+            }
+
+            const response = await fetch(
+                "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
+                {
+                    method: "POST",
+                    headers: {
+                        "apikey": supabasePublishableKey,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        orderId: updatedOrder.orderId,
+                        plan: updatedOrder.plan,
+                        planName: updatedOrder.planName,
+                        planPrice: updatedOrder.planPrice,
+                        fullName: updatedOrder.fullName,
+                        email: updatedOrder.email,
+                        telegram: updatedOrder.telegram,
+                        intendedUse: updatedOrder.intendedUse,
+                        requirements: updatedOrder.requirements,
+                        termsConsent: updatedOrder.termsConsent
+                    })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(
+                    result?.error ||
+                    "Unable to create your order."
+                );
+            }
+
+            sessionStorage.setItem(
+                "nexproxyOrder",
+                JSON.stringify(updatedOrder)
+            );
+
+            window.location.href = "../../payment/";
+        } catch (error) {
+            console.error(
+                "Unable to create order in Supabase.",
+                error
+            );
+
+            confirmButton.disabled = false;
+            confirmButton.removeAttribute("aria-busy");
+
+            alert(
+                "We could not create your order right now. Please try again."
+            );
+        }
     });
 }
 

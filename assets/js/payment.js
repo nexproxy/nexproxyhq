@@ -46,6 +46,11 @@ function getStoredOrder() {
  * Ensure the order has the payment fields required
  * by the payment workflow.
  */
+
+/**
+ * Ensure the order has the payment and fulfillment fields
+ * required by the order lifecycle.
+ */
 function ensurePaymentState(orderData) {
     let changed = false;
 
@@ -71,6 +76,17 @@ function ensurePaymentState(orderData) {
 
     if (!orderData.orderStatus) {
         orderData.orderStatus = "PENDING_PAYMENT";
+        changed = true;
+    }
+
+    if (!orderData.fulfillment) {
+        orderData.fulfillment = {
+            status: "NOT_ASSIGNED",
+            proxyAssigned: false,
+            deliveryMethod: "",
+            assignedAt: "",
+            deliveredAt: ""
+        };
         changed = true;
     }
 
@@ -229,6 +245,93 @@ function updatePaymentState(orderData, paymentStatus) {
     return orderData;
 }
 
+
+
+/**
+ * Update and persist the fulfillment state for the current order.
+ */
+function updateFulfillmentState(orderData, fulfillmentStatus) {
+    if (!orderData.fulfillment) {
+        orderData.fulfillment = {
+            status: "NOT_ASSIGNED",
+            proxyAssigned: false,
+            deliveryMethod: "",
+            assignedAt: "",
+            deliveredAt: ""
+        };
+    }
+
+    orderData.fulfillment.status = fulfillmentStatus;
+
+    switch (fulfillmentStatus) {
+        case "ASSIGNED":
+            orderData.fulfillment.proxyAssigned = true;
+            orderData.orderStatus = "PROXY_ASSIGNED";
+
+            if (!orderData.fulfillment.assignedAt) {
+                orderData.fulfillment.assignedAt =
+                    new Date().toISOString();
+            }
+            break;
+
+        case "DELIVERED":
+            orderData.fulfillment.proxyAssigned = true;
+            orderData.orderStatus = "DELIVERED";
+
+            if (!orderData.fulfillment.deliveredAt) {
+                orderData.fulfillment.deliveredAt =
+                    new Date().toISOString();
+            }
+            break;
+
+        case "NOT_ASSIGNED":
+        default:
+            orderData.fulfillment.status = "NOT_ASSIGNED";
+            orderData.fulfillment.proxyAssigned = false;
+            orderData.orderStatus = "PROCESSING";
+            break;
+    }
+
+    sessionStorage.setItem(
+        "nexproxyOrder",
+        JSON.stringify(orderData)
+    );
+
+    return orderData;
+}
+
+
+/**
+ * Set and persist the delivery method for the current order.
+ */
+function setDeliveryMethod(orderData, deliveryMethod) {
+    const normalizedMethod = String(deliveryMethod)
+        .trim()
+        .toUpperCase();
+
+    if (!["TELEGRAM", "EMAIL"].includes(normalizedMethod)) {
+        return orderData;
+    }
+
+    if (!orderData.fulfillment) {
+        orderData.fulfillment = {
+            status: "NOT_ASSIGNED",
+            proxyAssigned: false,
+            deliveryMethod: "",
+            assignedAt: "",
+            deliveredAt: ""
+        };
+    }
+
+    orderData.fulfillment.deliveryMethod = normalizedMethod;
+
+    sessionStorage.setItem(
+        "nexproxyOrder",
+        JSON.stringify(orderData)
+    );
+
+    return orderData;
+}
 
 /**
  * Format the order price for display.
