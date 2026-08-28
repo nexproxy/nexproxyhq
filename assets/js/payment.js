@@ -17,6 +17,7 @@ function initPaymentPage() {
 
     ensurePaymentState(orderData);
     populatePaymentSummary(orderData);
+    initPaymentForm(orderData);
 }
 
 /**
@@ -38,19 +39,129 @@ function getStoredOrder() {
     }
 }
 
+
 /**
- * Ensure the order has the payment fields required
- * by the payment workflow.
+ * Initialize the payment submission form.
  */
-/**
- * Ensure the order has the payment fields required
- * by the payment workflow.
- */
+function initPaymentForm(orderData) {
+    const paymentForm = document.querySelector("#payment-form");
+
+    if (!paymentForm) {
+        return;
+    }
+
+    paymentForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const paymentMethod =
+            paymentForm.paymentMethod.value.trim();
+
+        const paymentReference =
+            paymentForm.paymentReference.value.trim();
+
+        const submitButton =
+            document.querySelector("#submit-payment");
+
+        const message =
+            document.querySelector("#payment-form-message");
+
+        if (!paymentMethod || !paymentReference) {
+            if (message) {
+                message.textContent =
+                    "Please enter your payment method and reference.";
+            }
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.setAttribute("aria-busy", "true");
+        }
+
+        if (message) {
+            message.textContent =
+                "Submitting your payment information...";
+        }
+
+        try {
+            const supabasePublishableKey =
+                window.NEXPROXY_SUPABASE_PUBLISHABLE_KEY;
+
+            if (!supabasePublishableKey) {
+                throw new Error(
+                    "Supabase configuration is unavailable."
+                );
+            }
+
+            const response = await fetch(
+                "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
+                {
+                    method: "POST",
+                    headers: {
+                        "apikey": supabasePublishableKey,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        action: "submit_payment",
+                        orderId: orderData.orderId,
+                        email: orderData.email,
+                        paymentMethod,
+                        paymentReference
+                    })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(
+                    result?.error ||
+                    "Unable to submit your payment."
+                );
+            }
+
+            updatePaymentState(
+                orderData,
+                "PAYMENT_SUBMITTED"
+            );
+
+            orderData.paymentMethod = paymentMethod;
+            orderData.paymentReference = paymentReference;
+            orderData.paymentSubmittedAt =
+                new Date().toISOString();
+
+            sessionStorage.setItem(
+                "nexproxyOrder",
+                JSON.stringify(orderData)
+            );
+
+            populatePaymentSummary(orderData);
+
+        } catch (error) {
+            console.error(
+                "Unable to submit payment.",
+                error
+            );
+
+            if (message) {
+                message.textContent =
+                    "We could not submit your payment right now. Please try again.";
+            }
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.removeAttribute("aria-busy");
+            }
+        }
+    });
+}
+
 
 /**
  * Ensure the order has the payment and fulfillment fields
  * required by the order lifecycle.
  */
+
 function ensurePaymentState(orderData) {
     let changed = false;
 
@@ -189,6 +300,7 @@ function getPaymentStatusMessage(paymentStatus) {
 /**
  * Return the appropriate payment action markup.
  */
+
 function getPaymentActionMarkup(paymentStatus) {
     switch (paymentStatus) {
         case "PAYMENT_SUBMITTED":
@@ -208,9 +320,61 @@ function getPaymentActionMarkup(paymentStatus) {
         case "UNPAID":
         default:
             return `
-                <p class="payment-help-text">
-                    No payment action is available yet. Please keep your Order ID for reference.
-                </p>
+                <form id="payment-form">
+
+                    <div class="form-group">
+                        <label for="payment-method">
+                            Payment Method
+                        </label>
+
+                        <select
+                            id="payment-method"
+                            name="paymentMethod"
+                            required
+                        >
+                            <option value="">
+                                Select payment method
+                            </option>
+
+                            <option value="USDT">
+                                USDT
+                            </option>
+
+                            <option value="ACH">
+                                ACH
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment-reference">
+                            Payment Reference
+                        </label>
+
+                        <input
+                            type="text"
+                            id="payment-reference"
+                            name="paymentReference"
+                            placeholder="Enter your payment reference"
+                            required
+                        >
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="submit-payment"
+                    >
+                        Submit Payment
+                    </button>
+
+                    <p
+                        id="payment-form-message"
+                        class="payment-help-text"
+                        aria-live="polite"
+                    ></p>
+
+                </form>
             `;
     }
 }
