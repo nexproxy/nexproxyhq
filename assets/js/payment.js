@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /**
  * Initialize the payment page.
  */
-function initPaymentPage() {
+async function initPaymentPage() {
     const orderData = getStoredOrder();
 
     if (!orderData) {
@@ -16,8 +16,14 @@ function initPaymentPage() {
     }
 
     ensurePaymentState(orderData);
-    populatePaymentSummary(orderData);
-    initPaymentForm(orderData);
+
+    const paymentSettings = await loadPaymentSettings();
+
+    populatePaymentSummary(
+        orderData,
+        paymentSettings
+    );
+
 }
 
 /**
@@ -41,119 +47,355 @@ function getStoredOrder() {
 
 
 /**
+ * Load the currently active payment settings
+ * from the NexProxy backend.
+ */
+async function loadPaymentSettings() {
+    const supabasePublishableKey =
+        window.NEXPROXY_SUPABASE_PUBLISHABLE_KEY;
+
+    if (!supabasePublishableKey) {
+        console.error(
+            "Supabase configuration is unavailable."
+        );
+
+        return [];
+    }
+
+    try {
+        const response = await fetch(
+            "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
+            {
+                method: "POST",
+                headers: {
+                    "apikey": supabasePublishableKey,
+                    "Authorization":
+                        `Bearer ${supabasePublishableKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    action: "get_payment_settings"
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result?.error ||
+                "Unable to load payment settings."
+            );
+        }
+
+        return Array.isArray(result.paymentSettings)
+            ? result.paymentSettings
+            : [];
+
+    } catch (error) {
+        console.error(
+            "Unable to load payment settings.",
+            error
+        );
+
+        return [];
+    }
+}
+
+/**
+ * Upload an optional payment screenshot.
+ */
+async function uploadPaymentProof(
+    orderData,
+    file,
+    supabasePublishableKey
+) {
+    if (!file) {
+        return null;
+    }
+
+    const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
+
+    const maxFileSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+            "Payment screenshot must be JPG, PNG, or WEBP."
+        );
+    }
+
+    if (file.size > maxFileSize) {
+        throw new Error(
+            "Payment screenshot must be 5 MB or smaller."
+        );
+    }
+
+    const formData = new FormData();
+
+    formData.append(
+        "action",
+        "upload_payment_proof"
+    );
+
+    formData.append(
+        "orderId",
+        orderData.orderId
+    );
+
+    formData.append(
+        "email",
+        orderData.email
+    );
+
+    formData.append(
+        "file",
+        file
+    );
+
+    const response = await fetch(
+        "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
+        {
+            method: "POST",
+            headers: {
+                "apikey":
+                    supabasePublishableKey,
+
+                "Authorization":
+                    `Bearer ${supabasePublishableKey}`
+            },
+            body: formData
+        }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        throw new Error(
+            result?.error ||
+            "Unable to upload the payment screenshot."
+        );
+    }
+
+    return result.proof || null;
+}
+
+/**
  * Initialize the payment submission form.
  */
 function initPaymentForm(orderData) {
-    const paymentForm = document.querySelector("#payment-form");
+    const paymentForm =
+        document.querySelector("#payment-form");
 
     if (!paymentForm) {
         return;
     }
 
-    paymentForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
+    paymentForm.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
 
-        const paymentMethod =
-            paymentForm.paymentMethod.value.trim();
+            const paymentMethod =
+                paymentForm.paymentMethod.value.trim();
 
-        const paymentReference =
-            paymentForm.paymentReference.value.trim();
+            const paymentReference =
+                paymentForm.paymentReference.value.trim();
 
-        const submitButton =
-            document.querySelector("#submit-payment");
-
-        const message =
-            document.querySelector("#payment-form-message");
-
-        if (!paymentMethod || !paymentReference) {
-            if (message) {
-                message.textContent =
-                    "Please enter your payment method and reference.";
-            }
-            return;
-        }
-
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.setAttribute("aria-busy", "true");
-        }
-
-        if (message) {
-            message.textContent =
-                "Submitting your payment information...";
-        }
-
-        try {
-            const supabasePublishableKey =
-                window.NEXPROXY_SUPABASE_PUBLISHABLE_KEY;
-
-            if (!supabasePublishableKey) {
-                throw new Error(
-                    "Supabase configuration is unavailable."
+            const screenshotInput =
+                document.querySelector(
+                    "#payment-screenshot"
                 );
-            }
 
-            const response = await fetch(
-                "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
-                {
-                    method: "POST",
-                    headers: {
-                        "apikey": supabasePublishableKey,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        action: "submit_payment",
-                        orderId: orderData.orderId,
-                        email: orderData.email,
-                        paymentMethod,
-                        paymentReference
-                    })
+            const screenshotFile =
+                screenshotInput?.files?.[0] || null;
+
+            const submitButton =
+                document.querySelector(
+                    "#submit-payment"
+                );
+
+            const message =
+                document.querySelector(
+                    "#payment-form-message"
+                );
+
+            if (
+                !paymentMethod ||
+                !paymentReference
+            ) {
+                if (message) {
+                    message.textContent =
+                        "Please enter your transaction ID / TXID.";
                 }
-            );
 
-            const result = await response.json();
-
-            if (!response.ok || !result.success) {
-                throw new Error(
-                    result?.error ||
-                    "Unable to submit your payment."
-                );
-            }
-
-            updatePaymentState(
-                orderData,
-                "PAYMENT_SUBMITTED"
-            );
-
-            orderData.paymentMethod = paymentMethod;
-            orderData.paymentReference = paymentReference;
-            orderData.paymentSubmittedAt =
-                new Date().toISOString();
-
-            sessionStorage.setItem(
-                "nexproxyOrder",
-                JSON.stringify(orderData)
-            );
-
-            populatePaymentSummary(orderData);
-
-        } catch (error) {
-            console.error(
-                "Unable to submit payment.",
-                error
-            );
-
-            if (message) {
-                message.textContent =
-                    "We could not submit your payment right now. Please try again.";
+                return;
             }
 
             if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.removeAttribute("aria-busy");
+                submitButton.disabled = true;
+
+                submitButton.setAttribute(
+                    "aria-busy",
+                    "true"
+                );
+            }
+
+            try {
+                const supabasePublishableKey =
+                    window
+                        .NEXPROXY_SUPABASE_PUBLISHABLE_KEY;
+
+                if (!supabasePublishableKey) {
+                    throw new Error(
+                        "Supabase configuration is unavailable."
+                    );
+                }
+
+                /*
+                 * --------------------------------------------------
+                 * OPTIONAL PAYMENT SCREENSHOT
+                 * --------------------------------------------------
+                 */
+
+                let paymentProof = null;
+
+                if (screenshotFile) {
+                    if (message) {
+                        message.textContent =
+                            "Uploading your payment screenshot...";
+                    }
+
+                    paymentProof =
+                        await uploadPaymentProof(
+                            orderData,
+                            screenshotFile,
+                            supabasePublishableKey
+                        );
+                }
+
+                /*
+                 * --------------------------------------------------
+                 * SUBMIT PAYMENT
+                 * --------------------------------------------------
+                 */
+
+                if (message) {
+                    message.textContent =
+                        "Submitting your payment information...";
+                }
+
+                const response = await fetch(
+                    "https://fzvxuhumtebqlpwqpkvt.supabase.co/functions/v1/dynamic-action",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "apikey":
+                                supabasePublishableKey,
+
+                            "Authorization":
+                                `Bearer ${supabasePublishableKey}`,
+
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            action:
+                                "submit_payment",
+
+                            orderId:
+                                orderData.orderId,
+
+                            email:
+                                orderData.email,
+
+                            paymentMethod,
+
+                            paymentReference
+                        })
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                if (
+                    !response.ok ||
+                    !result.success
+                ) {
+                    throw new Error(
+                        result?.error ||
+                        "Unable to submit your payment."
+                    );
+                }
+
+                /*
+                 * --------------------------------------------------
+                 * UPDATE LOCAL PAYMENT STATE
+                 * --------------------------------------------------
+                 */
+
+                updatePaymentState(
+                    orderData,
+                    "PAYMENT_SUBMITTED"
+                );
+
+                orderData.paymentMethod =
+                    paymentMethod;
+
+                orderData.paymentReference =
+                    paymentReference;
+
+                orderData.paymentSubmittedAt =
+                    new Date().toISOString();
+
+                /*
+                 * Store the proof ID locally when
+                 * a screenshot was uploaded.
+                 */
+
+                if (paymentProof?.id) {
+                    orderData.paymentProofId =
+                        paymentProof.id;
+                }
+
+                sessionStorage.setItem(
+                    "nexproxyOrder",
+                    JSON.stringify(orderData)
+                );
+
+                populatePaymentSummary(
+                    orderData
+                );
+
+            } catch (error) {
+                console.error(
+                    "Unable to submit payment.",
+                    error
+                );
+
+                if (message) {
+                    message.textContent =
+                        error?.message ||
+                        "We could not submit your payment right now. Please try again.";
+                }
+
+                if (submitButton) {
+                    submitButton.disabled =
+                        false;
+
+                    submitButton.removeAttribute(
+                        "aria-busy"
+                    );
+                }
             }
         }
-    });
+    );
 }
 
 
@@ -222,45 +464,73 @@ function redirectToOrderForm() {
 /**
  * Populate the payment summary and current payment state.
  */
-function populatePaymentSummary(orderData) {
-    const orderId = document.querySelector("#payment-order-id");
-    const plan = document.querySelector("#payment-plan");
-    const price = document.querySelector("#payment-price");
-    const statusValue = document.querySelector("#payment-status-value");
-    const statusMessage = document.querySelector("#payment-status-message");
-    const paymentAction = document.querySelector("#payment-action");
+
+/**
+ * Populate the payment summary and current payment state.
+ */
+function populatePaymentSummary(
+    orderData,
+    paymentSettings = []
+) {
+    const orderId =
+        document.querySelector("#payment-order-id");
+
+    const plan =
+        document.querySelector("#payment-plan");
+
+    const price =
+        document.querySelector("#payment-price");
+
+    const statusValue =
+        document.querySelector("#payment-status-value");
+
+    const statusMessage =
+        document.querySelector("#payment-status-message");
+
+    const paymentAction =
+        document.querySelector("#payment-action");
 
     if (orderId) {
-        orderId.textContent = orderData.orderId || "—";
+        orderId.textContent =
+            orderData.orderId || "—";
     }
 
     if (plan) {
-        plan.textContent = orderData.planName || "—";
+        plan.textContent =
+            orderData.planName || "—";
     }
 
     if (price) {
-        price.textContent = formatPrice(orderData.planPrice);
+        price.textContent =
+            formatPrice(orderData.planPrice);
     }
 
     if (statusValue) {
-        statusValue.textContent = getPaymentStatusLabel(
-            orderData.paymentStatus
-        );
+        statusValue.textContent =
+            getPaymentStatusLabel(
+                orderData.paymentStatus
+            );
     }
 
     if (statusMessage) {
-        statusMessage.textContent = getPaymentStatusMessage(
-            orderData.paymentStatus
-        );
+        statusMessage.textContent =
+            getPaymentStatusMessage(
+                orderData.paymentStatus
+            );
     }
 
     if (paymentAction) {
-        paymentAction.innerHTML = getPaymentActionMarkup(
-            orderData.paymentStatus
-        );
+        paymentAction.innerHTML =
+            getPaymentActionMarkup(
+                orderData.paymentStatus,
+                orderData,
+                paymentSettings
+            );
     }
-}
 
+    initPaymentInstructionControls();
+    initPaymentForm(orderData);
+}
 
 
 /**
@@ -301,12 +571,21 @@ function getPaymentStatusMessage(paymentStatus) {
  * Return the appropriate payment action markup.
  */
 
-function getPaymentActionMarkup(paymentStatus) {
+/**
+ * Return the appropriate payment action markup.
+ */
+
+function getPaymentActionMarkup(
+    paymentStatus,
+    orderData,
+    paymentSettings = []
+) {
     switch (paymentStatus) {
         case "PAYMENT_SUBMITTED":
             return `
                 <p class="payment-help-text">
-                    We are reviewing your payment. Please keep your Order ID for reference.
+                    We are reviewing your payment.
+                    Please keep your Order ID for reference.
                 </p>
             `;
 
@@ -318,67 +597,227 @@ function getPaymentActionMarkup(paymentStatus) {
             `;
 
         case "UNPAID":
-        default:
+        default: {
+            const activeSettings =
+                paymentSettings.find(
+                    (setting) =>
+                        setting.payment_method === "USDT" &&
+                        setting.network === "TRC20" &&
+                        setting.enabled === true
+                );
+
+            if (!activeSettings) {
+                return `
+                    <p class="payment-help-text">
+                        Payment instructions are temporarily unavailable.
+                        Please contact support.
+                    </p>
+                `;
+            }
+
+            const walletAddress =
+                activeSettings.wallet_address;
+
+            const amount =
+                formatPrice(orderData.planPrice);
+
             return `
-                <form id="payment-form">
-
-                    <div class="form-group">
-                        <label for="payment-method">
-                            Payment Method
-                        </label>
-
-                        <select
-                            id="payment-method"
-                            name="paymentMethod"
-                            required
-                        >
-                            <option value="">
-                                Select payment method
-                            </option>
-
-                            <option value="USDT">
-                                USDT
-                            </option>
-
-                            <option value="ACH">
-                                ACH
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="payment-reference">
-                            Payment Reference
-                        </label>
-
-                        <input
-                            type="text"
-                            id="payment-reference"
-                            name="paymentReference"
-                            placeholder="Enter your payment reference"
-                            required
-                        >
-                    </div>
+                <div class="payment-instructions">
 
                     <button
-                        type="submit"
+                        type="button"
                         class="btn btn-primary"
-                        id="submit-payment"
+                        id="continue-to-payment"
                     >
-                        Submit Payment
+                        Continue to Payment
                     </button>
 
-                    <p
-                        id="payment-form-message"
-                        class="payment-help-text"
-                        aria-live="polite"
-                    ></p>
+                    <div
+                        id="payment-details"
+                        style="display: none;"
+                    >
 
-                </form>
+                        <div class="payment-summary">
+
+                            <p>
+                                <strong>Payment Method:</strong>
+                                USDT
+                            </p>
+
+                            <p>
+                                <strong>Network:</strong>
+                                TRC20
+                            </p>
+
+                            <p>
+                                <strong>Amount:</strong>
+                                ${amount}
+                            </p>
+
+                            <p>
+                                <strong>Receiving Address:</strong>
+                            </p>
+
+                            <div class="payment-wallet-address">
+                                <code id="payment-wallet-address">
+                                    ${walletAddress}
+                                </code>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary"
+                                    id="copy-wallet-address"
+                                >
+                                    Copy Address
+                                </button>
+                            </div>
+
+                            <p class="payment-help-text">
+                                Send the exact amount to the
+                                USDT TRC20 address above.
+                            </p>
+
+                        </div>
+
+                        <form id="payment-form">
+
+                            <div class="form-group">
+
+                                <label for="payment-reference">
+                                    Transaction ID / TXID
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="payment-reference"
+                                    name="paymentReference"
+                                    placeholder="Enter your transaction ID / TXID"
+                                    required
+                                >
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label for="payment-screenshot">
+                                    Payment Screenshot
+                                    <span class="payment-optional">
+                                        (Optional)
+                                    </span>
+                                </label>
+
+                                <input
+                                    type="file"
+                                    id="payment-screenshot"
+                                    name="paymentScreenshot"
+                                    accept="image/jpeg,image/png,image/webp"
+                                >
+
+                                <p class="payment-help-text">
+                                    You may upload a screenshot to help us
+                                    verify your payment faster.
+                                    JPG, PNG, or WEBP up to 5 MB.
+                                </p>
+
+                            </div>
+
+                            <input
+                                type="hidden"
+                                name="paymentMethod"
+                                value="USDT"
+                            >
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                                id="submit-payment"
+                            >
+                                Submit Payment
+                            </button>
+
+                            <p
+                                id="payment-form-message"
+                                class="payment-help-text"
+                                aria-live="polite"
+                            ></p>
+
+                        </form>
+
+                    </div>
+
+                </div>
             `;
+        }
     }
 }
 
+/**
+ * Initialize payment instruction controls.
+ */
+function initPaymentInstructionControls() {
+    const continueButton =
+        document.querySelector(
+            "#continue-to-payment"
+        );
+
+    const paymentDetails =
+        document.querySelector(
+            "#payment-details"
+        );
+
+    const copyButton =
+        document.querySelector(
+            "#copy-wallet-address"
+        );
+
+    const walletAddress =
+        document.querySelector(
+            "#payment-wallet-address"
+        );
+
+    if (continueButton && paymentDetails) {
+        continueButton.addEventListener(
+            "click",
+            () => {
+                paymentDetails.style.display =
+                    "block";
+
+                continueButton.style.display =
+                    "none";
+            }
+        );
+    }
+
+    if (
+        copyButton &&
+        walletAddress
+    ) {
+        copyButton.addEventListener(
+            "click",
+            async () => {
+                try {
+                    await navigator.clipboard.writeText(
+                        walletAddress.textContent.trim()
+                    );
+
+                    copyButton.textContent =
+                        "Copied";
+
+                    setTimeout(() => {
+                        copyButton.textContent =
+                            "Copy Address";
+                    }, 2000);
+
+                } catch (error) {
+                    console.error(
+                        "Unable to copy wallet address.",
+                        error
+                    );
+                }
+            }
+        );
+    }
+}
 
 /**
  * Update and persist the payment state for the current order.
