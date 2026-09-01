@@ -1689,13 +1689,14 @@ function openAdminCustomerDetailModal(
     content.appendChild(grid);
 
 
-    /*
-    * --------------------------------------------------
-    * EXTEND SUBSCRIPTION
-    * --------------------------------------------------
-    *
-    * Only active proxy assignments can be extended.
-    */
+        /*
+     * --------------------------------------------------
+     * ACTIVE ASSIGNMENT ACTIONS
+     * --------------------------------------------------
+     *
+     * Active proxy assignments can be extended
+     * or replaced.
+     */
     if (
         assignment &&
         assignment.status === "ACTIVE"
@@ -1706,6 +1707,9 @@ function openAdminCustomerDetailModal(
         actions.className =
             "admin-modal-actions";
 
+        /*
+         * EXTEND SUBSCRIPTION
+         */
         const extendButton =
             document.createElement("button");
 
@@ -1734,6 +1738,40 @@ function openAdminCustomerDetailModal(
         actions.appendChild(
             extendButton
         );
+
+
+        /*
+         * REPLACE PROXY
+         */
+        const replaceButton =
+            document.createElement("button");
+
+        replaceButton.type =
+            "button";
+
+        replaceButton.className =
+            "admin-btn admin-btn-secondary";
+
+        replaceButton.textContent =
+            "Replace Proxy";
+
+        replaceButton.addEventListener(
+            "click",
+            () => {
+                modal.classList.add(
+                    "is-hidden"
+                );
+
+                openAdminReplacementModal(
+                    assignment
+                );
+            }
+        );
+
+        actions.appendChild(
+            replaceButton
+        );
+
 
         content.appendChild(
             actions
@@ -3199,6 +3237,329 @@ function closeAllAdminModals() {
 }
 
 
+/* =========================================================
+   PROXY REPLACEMENT OPERATIONS
+   ========================================================= */
+
+const adminReplacementState = {
+    submitting: false
+};
+
+
+/**
+ * Open Replace Proxy modal.
+ */
+function openAdminReplacementModal(
+    assignment
+) {
+    const modal =
+        adminElement(
+            "replacement-modal"
+        );
+
+    if (!modal || !assignment) {
+        return;
+    }
+
+    const form =
+        adminElement(
+            "replacement-form"
+        );
+
+    const assignmentIdInput =
+        adminElement(
+            "replacement-assignment-id"
+        );
+
+    const currentProxy =
+        adminElement(
+            "replacement-current-proxy"
+        );
+
+    const message =
+        adminElement(
+            "replacement-message"
+        );
+
+    if (form) {
+        form.reset();
+    }
+
+    if (assignmentIdInput) {
+        assignmentIdInput.value =
+            assignment.id || "";
+    }
+
+    if (currentProxy) {
+        currentProxy.textContent =
+            `Current proxy: ${
+                formatAdminProxy(
+                    assignment
+                )
+            }`;
+    }
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+
+    modal.classList.remove(
+        "is-hidden"
+    );
+}
+
+
+/**
+ * Close Replace Proxy modal.
+ */
+function closeAdminReplacementModal() {
+    const modal =
+        adminElement(
+            "replacement-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add(
+        "is-hidden"
+    );
+
+    const form =
+        adminElement(
+            "replacement-form"
+        );
+
+    if (form) {
+        form.reset();
+    }
+
+    const message =
+        adminElement(
+            "replacement-message"
+        );
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+}
+
+
+/**
+ * Initialize Replacement controls.
+ */
+function initAdminReplacementControls() {
+    const form =
+        adminElement(
+            "replacement-form"
+        );
+
+    if (
+        form &&
+        !form.dataset.initialized
+    ) {
+        form.addEventListener(
+            "submit",
+            handleAdminReplacementSubmit
+        );
+
+        form.dataset.initialized =
+            "true";
+    }
+
+    const cancelButton =
+        adminElement(
+            "replacement-cancel"
+        );
+
+    if (
+        cancelButton &&
+        !cancelButton.dataset.initialized
+    ) {
+        cancelButton.addEventListener(
+            "click",
+            closeAdminReplacementModal
+        );
+
+        cancelButton.dataset.initialized =
+            "true";
+    }
+}
+
+
+/**
+ * Submit Proxy Replacement.
+ */
+async function handleAdminReplacementSubmit(
+    event
+) {
+    event.preventDefault();
+
+    if (
+        adminReplacementState.submitting
+    ) {
+        return;
+    }
+
+    const assignmentId =
+        adminElement(
+            "replacement-assignment-id"
+        )?.value.trim() || "";
+
+    const nickname =
+        adminElement(
+            "replacement-proxy-nickname"
+        )?.value.trim() || "";
+
+    const proxyNumber =
+        adminElement(
+            "replacement-proxy-number"
+        )?.value.trim() || "";
+
+    const host =
+        adminElement(
+            "replacement-proxy-host"
+        )?.value.trim() || "";
+
+    const port =
+        adminElement(
+            "replacement-proxy-port"
+        )?.value.trim() || "";
+
+    const message =
+        adminElement(
+            "replacement-message"
+        );
+
+    const submitButton =
+        adminElement(
+            "replacement-submit"
+        );
+
+    if (!assignmentId) {
+        setAdminMessage(
+            message,
+            "Assignment ID is required.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (!nickname) {
+        setAdminMessage(
+            message,
+            "New proxy nickname is required.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (!proxyNumber) {
+        setAdminMessage(
+            message,
+            "New proxy number is required.",
+            "error"
+        );
+
+        return;
+    }
+
+    adminReplacementState.submitting =
+        true;
+
+    if (submitButton) {
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "Replacing...";
+    }
+
+    setAdminMessage(
+        message,
+        "Replacing proxy..."
+    );
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            data,
+            error
+        } = await supabase.rpc(
+            "replace_proxy_assignment",
+            {
+                p_assignment_id:
+                    assignmentId,
+                p_proxy_nickname:
+                    nickname,
+                p_proxy_number:
+                    proxyNumber,
+                p_host:
+                    host || null,
+                p_port:
+                    port || null
+            }
+        );
+
+        if (error) {
+            throw error;
+        }
+
+        if (!data) {
+            throw new Error(
+                "Proxy replacement was not completed."
+            );
+        }
+
+        showAdminToast(
+            "Proxy replaced successfully.",
+            "success"
+        );
+
+        closeAdminReplacementModal();
+
+        await loadAdminDashboardData();
+
+    } catch (error) {
+        console.error(
+            "NexProxy admin replacement error:",
+            error
+        );
+
+        setAdminMessage(
+            message,
+            getFriendlyAdminOperationError(
+                error,
+                "Unable to replace proxy."
+            ),
+            "error"
+        );
+
+    } finally {
+        adminReplacementState.submitting =
+            false;
+
+        if (submitButton) {
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "Replace Proxy";
+        }
+    }
+}
+
 /**
  * Initialize generic modal close behavior.
  */
@@ -3324,6 +3685,8 @@ async function initializeAdminApplication() {
         initAdminAssignmentControls();
 
         initAdminExtensionControls();
+
+        initAdminReplacementControls();
 
         initAdminAuthListener();
 
