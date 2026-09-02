@@ -784,6 +784,16 @@ function initPaymentInstructionControls() {
 
                 continueButton.style.display =
                     "none";
+
+                const statusMessage =
+                    document.querySelector(
+                        "#payment-status-message"
+                    );
+
+                if (statusMessage) {
+                    statusMessage.textContent =
+                        "Payment instructions are now available below. Send the exact amount to the provided wallet address, then submit your transaction ID.";
+                }
             }
         );
     }

@@ -369,3 +369,7 @@
         padding-top: var(--space-5);
     }
 }
+
+.form-field:has(#requirements) {
+    margin-top: 12px;
+}
