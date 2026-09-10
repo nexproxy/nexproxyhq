@@ -829,9 +829,13 @@ async function initializeAdminDashboard() {
 const adminDashboardState = {
     orders: [],
     assignments: [],
+    inventory: [],
+    paymentSettings: [],
     customers: [],
     customerFilter: "ALL",
-    customerSearch: ""
+    customerSearch: "",
+    inventoryFilter: "ALL",
+    inventorySearch: ""
 };
 
 
@@ -845,7 +849,9 @@ async function loadAdminDashboardData() {
 
     const [
         ordersResult,
-        assignmentsResult
+        assignmentsResult,
+        inventoryResult,
+        paymentSettingsResult
     ] = await Promise.all([
         supabase
             .from("orders")
@@ -859,7 +865,18 @@ async function loadAdminDashboardData() {
             .select("*")
             .order("created_at", {
                 ascending: false
-            })
+            }),
+
+        supabase
+            .from("proxy_inventory")
+            .select("*")
+            .order("created_at", {
+                ascending: false
+            }),
+
+        supabase.rpc(
+            "get_admin_payment_settings"
+        )
     ]);
 
     if (ordersResult.error) {
@@ -868,6 +885,14 @@ async function loadAdminDashboardData() {
 
     if (assignmentsResult.error) {
         throw assignmentsResult.error;
+    }
+
+    if (inventoryResult.error) {
+        throw inventoryResult.error;
+    }
+
+    if (paymentSettingsResult.error) {
+        throw paymentSettingsResult.error;
     }
 
     adminDashboardState.orders =
@@ -879,6 +904,16 @@ async function loadAdminDashboardData() {
         Array.isArray(assignmentsResult.data)
             ? assignmentsResult.data
             : [];
+
+    adminDashboardState.inventory =
+    Array.isArray(inventoryResult.data)
+        ? inventoryResult.data
+        : [];
+
+    adminDashboardState.paymentSettings =
+    Array.isArray(paymentSettingsResult.data)
+        ? paymentSettingsResult.data
+        : [];
 
     adminDashboardState.customers =
         buildAdminCustomerRecords(
@@ -895,8 +930,1183 @@ async function loadAdminDashboardData() {
     renderAdminPaymentTable();
 
     initAdminPaymentControls();
+
+    renderAdminPaymentSettings();
+
+    renderAdminProxyInventoryTable();
+
+    initAdminProxyInventoryControls();
+
 }
 
+
+/* =========================================================
+   PROXY INVENTORY — SPRINT 18.2.4
+   ========================================================= */
+
+/**
+ * Initialize Proxy Inventory search/filter controls.
+ */
+function initAdminProxyInventoryControls() {
+    const filter =
+        adminElement("proxy-inventory-filter");
+
+    const search =
+        adminElement("proxy-inventory-search");
+
+    if (
+        filter &&
+        !filter.dataset.initialized
+    ) {
+        filter.addEventListener(
+            "change",
+            () => {
+                adminDashboardState.inventoryFilter =
+                    filter.value || "ALL";
+
+                renderAdminProxyInventoryTable();
+            }
+        );
+
+        filter.dataset.initialized =
+            "true";
+    }
+
+    if (
+        search &&
+        !search.dataset.initialized
+    ) {
+        search.addEventListener(
+            "input",
+            () => {
+                adminDashboardState.inventorySearch =
+                    search.value.trim();
+
+                renderAdminProxyInventoryTable();
+            }
+        );
+
+        search.dataset.initialized =
+            "true";
+    }
+}
+
+
+/**
+ * Return inventory records matching the
+ * current filter and search state.
+ */
+function getFilteredAdminProxyInventory() {
+    const filter =
+        adminDashboardState.inventoryFilter ||
+        "ALL";
+
+    const search =
+        (
+            adminDashboardState.inventorySearch ||
+            ""
+        ).toLowerCase();
+
+    return adminDashboardState.inventory.filter(
+        (proxy) => {
+            if (
+                filter !== "ALL" &&
+                proxy.status !== filter
+            ) {
+                return false;
+            }
+
+            if (!search) {
+                return true;
+            }
+
+            const proxyName =
+                String(
+                    proxy.proxy_name || ""
+                ).toLowerCase();
+
+            const proxyNumber =
+                String(
+                    proxy.proxy_number || ""
+                ).toLowerCase();
+
+            return (
+                proxyName.includes(search) ||
+                proxyNumber.includes(search)
+            );
+        }
+    );
+}
+
+/**
+ * Open Payment Settings modal.
+ */
+function openAdminPaymentSettingsModal() {
+    const modal =
+        adminElement("payment-settings-modal");
+
+    const methodInput =
+        adminElement(
+            "payment-settings-method-input"
+        );
+
+    const networkInput =
+        adminElement(
+            "payment-settings-network-input"
+        );
+
+    const walletInput =
+        adminElement(
+            "payment-settings-wallet-input"
+        );
+
+    const enabledInput =
+        adminElement(
+            "payment-settings-enabled-input"
+        );
+
+    const message =
+        adminElement(
+            "payment-settings-form-message"
+        );
+
+    if (
+        !modal ||
+        !methodInput ||
+        !networkInput ||
+        !walletInput ||
+        !enabledInput
+    ) {
+        return;
+    }
+
+    const settings =
+        Array.isArray(
+            adminDashboardState.paymentSettings
+        )
+            ? adminDashboardState.paymentSettings
+            : [];
+
+    if (!settings.length) {
+        if (message) {
+            message.textContent =
+                "No payment settings found.";
+        }
+
+        return;
+    }
+
+    const setting =
+        settings[0];
+
+    methodInput.value =
+        setting.payment_method || "";
+
+    networkInput.value =
+        setting.network || "";
+
+    walletInput.value =
+        setting.wallet_address || "";
+
+    enabledInput.value =
+        setting.enabled
+            ? "true"
+            : "false";
+
+    if (message) {
+        message.textContent = "";
+    }
+
+    modal.classList.remove("is-hidden");
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    window.setTimeout(
+        () => {
+            walletInput.focus();
+        },
+        0
+    );
+}
+
+
+/**
+ * Close Payment Settings modal.
+ */
+function closeAdminPaymentSettingsModal() {
+    const modal =
+        adminElement(
+            "payment-settings-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("is-hidden");
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    const message =
+        adminElement(
+            "payment-settings-form-message"
+        );
+
+    if (message) {
+        message.textContent = "";
+    }
+}
+
+function renderAdminPaymentSettings() {
+    const method =
+        adminElement(
+            "payment-settings-method"
+        );
+
+    const network =
+        adminElement(
+            "payment-settings-network"
+        );
+
+    const wallet =
+        adminElement(
+            "payment-settings-wallet"
+        );
+
+    const status =
+        adminElement(
+            "payment-settings-status"
+        );
+
+    const updated =
+        adminElement(
+            "payment-settings-updated"
+        );
+
+    const message =
+        adminElement(
+            "payment-settings-message"
+        );
+
+    if (
+        !method ||
+        !network ||
+        !wallet ||
+        !status ||
+        !updated
+    ) {
+        return;
+    }
+
+    const settings =
+        Array.isArray(
+            adminDashboardState.paymentSettings
+        )
+            ? adminDashboardState.paymentSettings
+            : [];
+
+    if (!settings.length) {
+        method.textContent = "—";
+        network.textContent = "—";
+        wallet.textContent = "—";
+        status.textContent = "—";
+        updated.textContent = "—";
+
+        if (message) {
+            message.textContent =
+                "No payment settings found.";
+        }
+
+        return;
+    }
+
+    const setting =
+        settings[0];
+
+    method.textContent =
+        setting.payment_method || "—";
+
+    network.textContent =
+        setting.network || "—";
+
+    wallet.textContent =
+        setting.wallet_address || "—";
+
+    status.textContent =
+        setting.enabled
+            ? "Enabled"
+            : "Disabled";
+
+    updated.textContent =
+        formatAdminDate(
+            setting.updated_at
+        );
+
+    if (message) {
+        message.textContent = "";
+    }
+}
+
+/**
+ * Initialize Payment Settings controls.
+ */
+function initAdminPaymentSettingsControls() {
+    const form =
+        adminElement(
+            "payment-settings-form"
+        );
+
+    if (
+        form &&
+        !form.dataset.initialized
+    ) {
+
+        form.addEventListener(
+            "submit",
+            handleAdminPaymentSettingsSubmit
+        );
+
+        form.dataset.initialized =
+            "true";
+    }
+
+    const editButton =
+        adminElement(
+            "admin-edit-payment-settings"
+        );
+
+    if (
+        editButton &&
+        !editButton.dataset.initialized
+    ) {
+        editButton.addEventListener(
+            "click",
+            openAdminPaymentSettingsModal
+        );
+
+        editButton.dataset.initialized =
+            "true";
+    }
+
+    const cancelButton =
+        adminElement(
+            "payment-settings-cancel"
+        );
+
+    if (
+        cancelButton &&
+        !cancelButton.dataset.initialized
+    ) {
+        cancelButton.addEventListener(
+            "click",
+            closeAdminPaymentSettingsModal
+        );
+
+        cancelButton.dataset.initialized =
+            "true";
+    }
+}
+
+/**
+ * Submit Payment Settings update.
+ */
+async function handleAdminPaymentSettingsSubmit(
+    event
+) {
+    event.preventDefault();
+
+    const form =
+        adminElement(
+            "payment-settings-form"
+        );
+
+    const walletInput =
+        adminElement(
+            "payment-settings-wallet-input"
+        );
+
+    const enabledInput =
+        adminElement(
+            "payment-settings-enabled-input"
+        );
+
+    const message =
+        adminElement(
+            "payment-settings-form-message"
+        );
+
+    const submitButton =
+        adminElement(
+            "payment-settings-save"
+        );
+
+    if (
+        !form ||
+        !walletInput ||
+        !enabledInput
+    ) {
+        return;
+    }
+
+    const walletAddress =
+        walletInput.value.trim();
+
+    const enabled =
+        enabledInput.value === "true";
+
+    if (!walletAddress) {
+        if (message) {
+            message.textContent =
+                "Wallet address is required.";
+        }
+
+        walletInput.focus();
+        return;
+    }
+
+    if (
+        walletAddress.length < 20 ||
+        walletAddress.length > 128
+    ) {
+        if (message) {
+            message.textContent =
+                "Invalid wallet address length.";
+        }
+
+        walletInput.focus();
+        return;
+    }
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent =
+            "Saving...";
+    }
+
+    if (message) {
+        message.textContent =
+            "Saving payment settings...";
+    }
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            data,
+            error
+        } = await supabase.rpc(
+            "update_payment_settings",
+            {
+                p_wallet_address:
+                    walletAddress,
+
+                p_enabled:
+                    enabled
+            }
+        );
+
+        if (error) {
+            throw error;
+        }
+
+        const updatedSettings =
+            Array.isArray(data)
+                ? data
+                : [];
+
+        if (!updatedSettings.length) {
+            throw new Error(
+                "Payment settings update returned no data."
+            );
+        }
+
+        showAdminToast(
+            "Payment settings updated successfully.",
+            "success"
+        );
+
+        closeAdminPaymentSettingsModal();
+
+        await loadAdminDashboardData();
+    } catch (error) {
+        console.error(
+            "Failed to update payment settings:",
+            error
+        );
+
+        if (message) {
+            message.textContent =
+                error.message ||
+                "Failed to update payment settings.";
+        }
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent =
+                "Save Changes";
+        }
+    }
+}
+
+/**
+ * Render Proxy Inventory table.
+ */
+function renderAdminProxyInventoryTable() {
+    const tableBody =
+        adminElement(
+            "proxy-inventory-table-body"
+        );
+
+    const message =
+        adminElement(
+            "proxy-inventory-table-message"
+        );
+
+    if (!tableBody) {
+        return;
+    }
+
+    tableBody.innerHTML = "";
+
+    const inventory =
+        getFilteredAdminProxyInventory();
+
+    if (!inventory.length) {
+        const row =
+            document.createElement("tr");
+
+        const cell =
+            document.createElement("td");
+
+        cell.colSpan = 6;
+
+        cell.className =
+            "admin-table-empty";
+
+        cell.textContent =
+            "No proxy inventory records found.";
+
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+
+        if (message) {
+            message.textContent = "";
+        }
+
+        return;
+    }
+
+    inventory.forEach(
+        (proxy) => {
+            const row =
+                document.createElement("tr");
+
+            row.appendChild(
+                createAdminInventoryTextCell(
+                    proxy.proxy_name
+                )
+            );
+
+            row.appendChild(
+                createAdminInventoryTextCell(
+                    proxy.proxy_number
+                )
+            );
+
+            row.appendChild(
+                createAdminInventoryStatusCell(
+                    proxy.status
+                )
+            );
+
+            row.appendChild(
+                createAdminInventoryTextCell(
+                    formatAdminDate(
+                        proxy.created_at
+                    )
+                )
+            );
+
+            row.appendChild(
+                createAdminInventoryTextCell(
+                    formatAdminDate(
+                        proxy.updated_at
+                    )
+                )
+            );
+
+            const actionCell =
+                document.createElement("td");
+
+            const actionGroup =
+                document.createElement("div");
+
+            actionGroup.className =
+                "admin-action-group";
+
+            const editButton =
+                document.createElement("button");
+
+            editButton.type = "button";
+            editButton.className =
+                "admin-btn admin-btn-secondary admin-btn-small";
+
+            editButton.textContent =
+                "Edit";
+
+            editButton.addEventListener(
+                "click",
+                () => {
+                    openAdminEditProxyModal(proxy);
+                }
+            );
+
+            actionGroup.appendChild(
+                editButton
+            );
+
+            if (proxy.status === "AVAILABLE") {
+                const disableButton =
+                    document.createElement("button");
+
+                disableButton.type = "button";
+                disableButton.className =
+                    "admin-btn admin-btn-secondary admin-btn-small";
+
+                disableButton.textContent =
+                    "Disable";
+
+                disableButton.addEventListener(
+                    "click",
+                    () => {
+                        handleAdminProxyStatusChange(
+                            proxy,
+                            "DISABLED"
+                        );
+                    }
+                );
+
+                actionGroup.appendChild(
+                    disableButton
+                );
+            }
+
+            if (proxy.status === "DISABLED") {
+                const enableButton =
+                    document.createElement("button");
+
+                enableButton.type = "button";
+                enableButton.className =
+                    "admin-btn admin-btn-secondary admin-btn-small";
+
+                enableButton.textContent =
+                    "Enable";
+
+                enableButton.addEventListener(
+                    "click",
+                    () => {
+                        handleAdminProxyStatusChange(
+                            proxy,
+                            "AVAILABLE"
+                        );
+                    }
+                );
+
+                actionGroup.appendChild(
+                    enableButton
+                );
+            }
+
+            actionCell.appendChild(
+                actionGroup
+            );
+
+            row.appendChild(
+                actionCell
+            );
+
+            tableBody.appendChild(row);
+        }
+    );
+
+    if (message) {
+        message.textContent =
+            `${inventory.length} proxy record${
+                inventory.length === 1
+                    ? ""
+                    : "s"
+            }`;
+    }
+}
+
+/**
+ * Proxy Inventory edit modal state.
+ */
+const adminEditProxyState = {
+    proxyId: null,
+    submitting: false
+};
+
+
+/**
+ * Open Edit Proxy modal.
+ */
+function openAdminEditProxyModal(proxy) {
+    const modal =
+        adminElement("edit-proxy-modal");
+
+    const nameInput =
+        adminElement("edit-proxy-name");
+
+    const numberInput =
+        adminElement("edit-proxy-number");
+
+    const message =
+        adminElement("edit-proxy-message");
+
+    if (
+        !modal ||
+        !nameInput ||
+        !numberInput
+    ) {
+        return;
+    }
+
+    adminEditProxyState.proxyId =
+        proxy.id;
+
+    adminEditProxyState.submitting =
+        false;
+
+    nameInput.value =
+        proxy.proxy_name || "";
+
+    numberInput.value =
+        proxy.proxy_number || "";
+
+    if (message) {
+        message.textContent = "";
+    }
+
+    modal.classList.remove("is-hidden");
+
+    window.setTimeout(
+        () => {
+            nameInput.focus();
+        },
+        0
+    );
+}
+
+
+/**
+ * Close Edit Proxy modal.
+ */
+function closeAdminEditProxyModal() {
+    const modal =
+        adminElement("edit-proxy-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("is-hidden");
+
+    adminEditProxyState.proxyId =
+        null;
+
+    adminEditProxyState.submitting =
+        false;
+}
+
+
+/**
+ * Initialize Edit Proxy modal controls.
+ */
+function initAdminEditProxyControls() {
+    const closeButton =
+        adminElement("edit-proxy-close");
+
+    const cancelButton =
+        adminElement("edit-proxy-cancel");
+
+    if (
+        closeButton &&
+        !closeButton.dataset.initialized
+    ) {
+        closeButton.addEventListener(
+            "click",
+            closeAdminEditProxyModal
+        );
+
+        closeButton.dataset.initialized =
+            "true";
+    }
+
+    if (
+        cancelButton &&
+        !cancelButton.dataset.initialized
+    ) {
+        cancelButton.addEventListener(
+            "click",
+            closeAdminEditProxyModal
+        );
+
+        cancelButton.dataset.initialized =
+            "true";
+    }
+}
+
+
+/**
+ * Initialize Edit Proxy form.
+ */
+function initAdminEditProxyForm() {
+    const form =
+        adminElement("edit-proxy-form");
+
+    if (
+        !form ||
+        form.dataset.initialized
+    ) {
+        return;
+    }
+
+    form.addEventListener(
+        "submit",
+        handleAdminEditProxySubmit
+    );
+
+    form.dataset.initialized =
+        "true";
+}
+
+
+/**
+ * Submit Proxy Inventory edit.
+ */
+async function handleAdminEditProxySubmit(
+    event
+) {
+    event.preventDefault();
+
+    if (
+        adminEditProxyState.submitting
+    ) {
+        return;
+    }
+
+    const nameInput =
+        adminElement("edit-proxy-name");
+
+    const numberInput =
+        adminElement("edit-proxy-number");
+
+    const message =
+        adminElement("edit-proxy-message");
+
+    const submitButton =
+        adminElement("edit-proxy-submit");
+
+    if (
+        !nameInput ||
+        !numberInput ||
+        !adminEditProxyState.proxyId
+    ) {
+        return;
+    }
+
+    const proxyName =
+        nameInput.value.trim();
+
+    const proxyNumber =
+        numberInput.value.trim();
+
+    if (!proxyName) {
+        if (message) {
+            message.textContent =
+                "Proxy name is required.";
+        }
+
+        nameInput.focus();
+        return;
+    }
+
+    if (!proxyNumber) {
+        if (message) {
+            message.textContent =
+                "Proxy number is required.";
+        }
+
+        numberInput.focus();
+        return;
+    }
+
+    if (proxyName.length > 120) {
+        if (message) {
+            message.textContent =
+                "Proxy name must be 120 characters or less.";
+        }
+
+        nameInput.focus();
+        return;
+    }
+
+    if (proxyNumber.length > 120) {
+        if (message) {
+            message.textContent =
+                "Proxy number must be 120 characters or less.";
+        }
+
+        numberInput.focus();
+        return;
+    }
+
+    adminEditProxyState.submitting =
+        true;
+
+    if (message) {
+        message.textContent =
+            "Saving proxy...";
+    }
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent =
+            "Saving...";
+    }
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            error
+        } = await supabase
+            .from("proxy_inventory")
+            .update({
+                proxy_name: proxyName,
+                proxy_number: proxyNumber
+            })
+            .eq(
+                "id",
+                adminEditProxyState.proxyId
+            );
+
+        if (error) {
+            if (error.code === "23505") {
+                throw new Error(
+                    "Proxy name or proxy number already exists."
+                );
+            }
+
+            if (error.code === "42501") {
+                throw new Error(
+                    "You do not have permission to update proxy inventory."
+                );
+            }
+
+            throw error;
+        }
+
+        showAdminToast(
+            "Proxy updated successfully.",
+            "success"
+        );
+
+        closeAdminEditProxyModal();
+
+        await loadAdminDashboardData();
+    } catch (error) {
+        console.error(
+            "Failed to update proxy inventory:",
+            error
+        );
+
+        if (message) {
+            message.textContent =
+                error.message ||
+                "Failed to update proxy.";
+        }
+    } finally {
+        adminEditProxyState.submitting =
+            false;
+
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent =
+                "Save Changes";
+        }
+    }
+}
+
+
+/**
+ * Change Proxy Inventory status.
+ */
+async function handleAdminProxyStatusChange(
+    proxy,
+    nextStatus
+) {
+    if (!proxy || !proxy.id) {
+        return;
+    }
+
+    if (
+        nextStatus !== "AVAILABLE" &&
+        nextStatus !== "DISABLED"
+    ) {
+        return;
+    }
+
+    const currentStatus =
+        proxy.status;
+
+    if (
+        currentStatus === "ASSIGNED"
+    ) {
+        setAdminMessage(
+            "Assigned proxies cannot be manually changed from inventory.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (
+        currentStatus === nextStatus
+    ) {
+        return;
+    }
+
+    const actionLabel =
+        nextStatus === "DISABLED"
+            ? "disable"
+            : "enable";
+
+    const confirmed =
+        window.confirm(
+            `Are you sure you want to ${actionLabel} "${proxy.proxy_name}"?`
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            error
+        } = await supabase
+            .from("proxy_inventory")
+            .update({
+                status: nextStatus
+            })
+            .eq(
+                "id",
+                proxy.id
+            );
+
+        if (error) {
+            if (error.code === "42501") {
+                throw new Error(
+                    "You do not have permission to update proxy inventory."
+                );
+            }
+
+            throw error;
+        }
+
+        setAdminMessage(
+            `Proxy ${actionLabel}d successfully.`,
+            "success"
+        );
+
+        await loadAdminDashboardData();
+    } catch (error) {
+        console.error(
+            "Failed to change proxy status:",
+            error
+        );
+
+        setAdminMessage(
+            error.message ||
+                "Failed to update proxy status.",
+            "error"
+        );
+    }
+}
+
+
+/**
+ * Create a standard inventory text cell.
+ */
+function createAdminInventoryTextCell(
+    value
+) {
+    const cell =
+        document.createElement("td");
+
+    cell.textContent =
+        value || "—";
+
+    return cell;
+}
+
+
+/**
+ * Create an inventory status cell.
+ */
+function createAdminInventoryStatusCell(
+    status
+) {
+    const cell =
+        document.createElement("td");
+
+    const statusText =
+        document.createElement("span");
+
+    statusText.className =
+        "admin-status";
+
+    statusText.textContent =
+        formatAdminInventoryStatus(
+            status
+        );
+
+    cell.appendChild(
+        statusText
+    );
+
+    return cell;
+}
+
+
+/**
+ * Format Proxy Inventory status.
+ */
+function formatAdminInventoryStatus(
+    status
+) {
+    const labels = {
+        AVAILABLE: "Available",
+        ASSIGNED: "Assigned",
+        DISABLED: "Disabled"
+    };
+
+    return (
+        labels[status] ||
+        status ||
+        "Unknown"
+    );
+}
 
 /**
  * Build customer-facing records from orders
@@ -2102,6 +3312,371 @@ const adminAssignmentState = {
 };
 
 
+/* =========================================================
+   PROXY INVENTORY — ADD PROXY MODAL
+   ========================================================= */
+
+/**
+ * Open Add Proxy modal.
+ */
+function openAdminAddProxyModal() {
+    const modal =
+        adminElement("add-proxy-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    const form =
+        adminElement("add-proxy-form");
+
+    const message =
+        adminElement("add-proxy-message");
+
+    if (form) {
+        form.reset();
+    }
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+
+    modal.classList.remove(
+        "is-hidden"
+    );
+
+    const nameInput =
+        adminElement("add-proxy-name");
+
+    if (nameInput) {
+        nameInput.focus();
+    }
+}
+
+
+/**
+ * Close Add Proxy modal.
+ */
+function closeAdminAddProxyModal() {
+    const modal =
+        adminElement("add-proxy-modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add(
+        "is-hidden"
+    );
+
+    const form =
+        adminElement("add-proxy-form");
+
+    if (form) {
+        form.reset();
+    }
+
+    const message =
+        adminElement("add-proxy-message");
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+}
+
+
+/**
+ * Initialize Add Proxy modal controls.
+ */
+function initAdminAddProxyControls() {
+    const addButton =
+        adminElement("admin-add-proxy");
+
+    const closeButton =
+        adminElement("add-proxy-close");
+
+    const cancelButton =
+        adminElement("add-proxy-cancel");
+
+    if (
+        addButton &&
+        !addButton.dataset.initialized
+    ) {
+        addButton.addEventListener(
+            "click",
+            openAdminAddProxyModal
+        );
+
+        addButton.dataset.initialized =
+            "true";
+    }
+
+    if (
+        closeButton &&
+        !closeButton.dataset.initialized
+    ) {
+        closeButton.addEventListener(
+            "click",
+            closeAdminAddProxyModal
+        );
+
+        closeButton.dataset.initialized =
+            "true";
+    }
+
+    if (
+        cancelButton &&
+        !cancelButton.dataset.initialized
+    ) {
+        cancelButton.addEventListener(
+            "click",
+            closeAdminAddProxyModal
+        );
+
+        cancelButton.dataset.initialized =
+            "true";
+    }
+}
+
+
+/**
+ * Add Proxy submission state.
+ */
+const adminAddProxyState = {
+    submitting: false
+};
+
+
+/**
+ * Submit a new Proxy Inventory record.
+ */
+async function handleAdminAddProxySubmit(
+    event
+) {
+    event.preventDefault();
+
+    if (
+        adminAddProxyState.submitting
+    ) {
+        return;
+    }
+
+    const nameInput =
+        adminElement("add-proxy-name");
+
+    const numberInput =
+        adminElement("add-proxy-number");
+
+    const message =
+        adminElement("add-proxy-message");
+
+    const submitButton =
+        adminElement("add-proxy-submit");
+
+    if (
+        !nameInput ||
+        !numberInput
+    ) {
+        return;
+    }
+
+    const proxyName =
+        nameInput.value.trim();
+
+    const proxyNumber =
+        numberInput.value.trim();
+
+    /*
+     * Client-side validation.
+     */
+    if (!proxyName) {
+        setAdminMessage(
+            message,
+            "Proxy Name is required.",
+            "error"
+        );
+
+        nameInput.focus();
+
+        return;
+    }
+
+    if (!proxyNumber) {
+        setAdminMessage(
+            message,
+            "Proxy Number is required.",
+            "error"
+        );
+
+        numberInput.focus();
+
+        return;
+    }
+
+    if (
+        proxyName.length > 120
+    ) {
+        setAdminMessage(
+            message,
+            "Proxy Name must be 120 characters or fewer.",
+            "error"
+        );
+
+        nameInput.focus();
+
+        return;
+    }
+
+    if (
+        proxyNumber.length > 120
+    ) {
+        setAdminMessage(
+            message,
+            "Proxy Number must be 120 characters or fewer.",
+            "error"
+        );
+
+        numberInput.focus();
+
+        return;
+    }
+
+    /*
+     * Begin submission.
+     */
+    adminAddProxyState.submitting =
+        true;
+
+    if (submitButton) {
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "Adding...";
+    }
+
+    setAdminMessage(
+        message,
+        "Adding proxy..."
+    );
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            error
+        } = await supabase
+            .from("proxy_inventory")
+            .insert({
+                proxy_name:
+                    proxyName,
+
+                proxy_number:
+                    proxyNumber
+            });
+
+        if (error) {
+            console.error(
+                "NexProxy add proxy error:",
+                error
+            );
+
+            if (
+                error.code === "23505"
+            ) {
+                setAdminMessage(
+                    message,
+                    "A proxy with this name or number already exists.",
+                    "error"
+                );
+
+                return;
+            }
+
+            if (
+                error.code === "42501"
+            ) {
+                setAdminMessage(
+                    message,
+                    "You are not authorized to add proxy inventory.",
+                    "error"
+                );
+
+                return;
+            }
+
+            setAdminMessage(
+                message,
+                "Unable to add proxy. Please try again.",
+                "error"
+            );
+
+            return;
+        }
+
+        showAdminToast(
+            "Proxy added successfully.",
+            "success"
+        );
+
+        closeAdminAddProxyModal();
+
+        await loadAdminDashboardData();
+
+    } catch (error) {
+        console.error(
+            "NexProxy add proxy error:",
+            error
+        );
+
+        setAdminMessage(
+            message,
+            "Unable to add proxy. Please try again.",
+            "error"
+        );
+
+    } finally {
+        adminAddProxyState.submitting =
+            false;
+
+        if (submitButton) {
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "Add Proxy";
+        }
+    }
+}
+
+/**
+ * Initialize Add Proxy form.
+ */
+function initAdminAddProxyForm() {
+    const form =
+        adminElement("add-proxy-form");
+
+    if (
+        form &&
+        !form.dataset.initialized
+    ) {
+        form.addEventListener(
+            "submit",
+            handleAdminAddProxySubmit
+        );
+
+        form.dataset.initialized =
+            "true";
+    }
+}
+
 /**
  * Open Assign Proxy modal.
  */
@@ -2643,6 +4218,7 @@ function initAdminPaymentControls() {
             "true";
     }
 }
+
 
 
 /**
@@ -3682,11 +5258,21 @@ async function initializeAdminApplication() {
 
         initAdminModalBehavior();
 
+        initAdminAddProxyControls();
+
+        initAdminAddProxyForm();
+
         initAdminAssignmentControls();
 
         initAdminExtensionControls();
 
         initAdminReplacementControls();
+
+        initAdminEditProxyControls();
+
+        initAdminEditProxyForm();
+
+        initAdminPaymentSettingsControls();
 
         initAdminAuthListener();
 
