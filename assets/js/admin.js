@@ -848,11 +848,12 @@ async function loadAdminDashboardData() {
         initializeAdminSupabase();
 
     const [
-        ordersResult,
-        assignmentsResult,
-        inventoryResult,
-        paymentSettingsResult
-    ] = await Promise.all([
+    ordersResult,
+    assignmentsResult,
+    inventoryResult,
+    paymentSettingsResult,
+    fulfillmentsResult
+] = await Promise.all([
         supabase
             .from("orders")
             .select("*")
@@ -876,6 +877,10 @@ async function loadAdminDashboardData() {
 
         supabase.rpc(
             "get_admin_payment_settings"
+        ),
+
+        supabase.rpc(
+            "get_admin_fulfillment_status"
         )
     ]);
 
@@ -893,6 +898,10 @@ async function loadAdminDashboardData() {
 
     if (paymentSettingsResult.error) {
         throw paymentSettingsResult.error;
+    }
+
+    if (fulfillmentsResult.error) {
+        throw fulfillmentsResult.error;
     }
 
     adminDashboardState.orders =
@@ -913,6 +922,16 @@ async function loadAdminDashboardData() {
     adminDashboardState.paymentSettings =
     Array.isArray(paymentSettingsResult.data)
         ? paymentSettingsResult.data
+        : [];
+
+    adminDashboardState.fulfillments =
+    Array.isArray(fulfillmentsResult.data)
+        ? fulfillmentsResult.data
+        : [];
+
+    adminDashboardState.fulfillments =
+    Array.isArray(fulfillmentsResult.data)
+        ? fulfillmentsResult.data
         : [];
 
     adminDashboardState.customers =
@@ -2640,6 +2659,57 @@ function createAdminTableCell(
  * Detailed customer actions will be wired
  * in the next operational stage.
  */
+
+/**
+ * Find fulfillment record for an order.
+ */
+function getAdminFulfillmentForOrder(
+    orderId
+) {
+    return (
+        adminDashboardState.fulfillments.find(
+            (fulfillment) =>
+                fulfillment.order_id === orderId
+        ) || null
+    );
+}
+
+
+/**
+ * Determine whether fulfillment repair is
+ * appropriate for an order.
+ */
+function canRepairAdminFulfillment(customer) {
+    if (!customer?.order) return false;
+
+    const order = customer.order;
+    const assignment = customer.assignment;
+    const fulfillment = getAdminFulfillmentForOrder(order.order_id);
+
+    if (order.payment_status !== "PAYMENT_VERIFIED") return false;
+    if (order.order_status !== "PROXY_ASSIGNED") return false;
+    if (!assignment) return false;
+    if (assignment.status !== "ACTIVE") return false;
+    if (!fulfillment) return false;
+
+    const inventory = adminDashboardState.inventory.find(
+        (item) => item.proxy_number === assignment?.proxy_number
+    );
+
+    if (!inventory) return false;
+    if (inventory.status !== "ASSIGNED") return false;
+
+    if (fulfillment.status === "DELIVERED") return false;
+
+    const synchronized =
+        fulfillment.status === "ASSIGNED" &&
+        fulfillment.proxy_assigned === true &&
+        fulfillment.proxy_reference === assignment.proxy_number &&
+        fulfillment.assigned_at === assignment.start_at;
+
+    return !synchronized;
+}
+
 /**
  * Create customer action cell.
  */
@@ -2713,6 +2783,51 @@ function createAdminActionCell(
         );
 
         cell.appendChild(assignButton);
+    }
+
+        /*
+    * --------------------------------------------------
+    * REPAIR FULFILLMENT
+    * --------------------------------------------------
+    *
+    * Only expose repair when the fulfillment record
+    * is inconsistent with the active assignment.
+    */
+
+    if (
+        canRepairAdminFulfillment(
+            customer
+        )
+    ) {
+        const repairButton =
+            document.createElement(
+                "button"
+            );
+
+        repairButton.type =
+            "button";
+
+        repairButton.className =
+            "admin-btn admin-btn-secondary admin-btn-small";
+
+        repairButton.textContent =
+            "Repair Fulfillment";
+
+        repairButton.dataset.orderId =
+            customer.order.order_id;
+
+        repairButton.addEventListener(
+            "click",
+            () => {
+                openAdminRepairFulfillmentModal(
+                    customer.order
+                );
+            }
+        );
+
+        cell.appendChild(
+            repairButton
+        );
     }
 
     return cell;
@@ -4027,6 +4142,46 @@ function getFriendlyAdminOperationError(
         return "The selected order could not be found.";
     }
 
+    if (
+        message.includes(
+            "Delivered fulfillment cannot be repaired"
+        )
+    ) {
+        return "A delivered fulfillment cannot be repaired.";
+    }
+
+    if (
+        message.includes(
+            "Active proxy assignment not found"
+        )
+    ) {
+        return "This order does not have an active proxy assignment.";
+    }
+
+    if (
+        message.includes(
+            "Active assignment proxy is missing from inventory"
+        )
+    ) {
+        return "The active proxy is missing from inventory.";
+    }
+
+    if (
+        message.includes(
+            "Active assignment proxy inventory is not ASSIGNED"
+        )
+    ) {
+        return "The active proxy inventory state is inconsistent.";
+    }
+
+    if (
+        message.includes(
+            "Fulfillment is already synchronized"
+        )
+    ) {
+        return "This fulfillment is already synchronized.";
+    }
+
     return message || fallback;
 }
 
@@ -4814,6 +4969,297 @@ function closeAllAdminModals() {
 
 
 /* =========================================================
+   PROXY RFULILLMENT / REPAIR OPERATIONS
+   ========================================================= */
+
+const adminFulfillmentRepairState = {
+    submitting: false
+};
+
+/**
+ * Open Repair Fulfillment modal.
+ */
+function openAdminRepairFulfillmentModal(order) {
+    const modal =
+        adminElement("repair-fulfillment-modal");
+
+    if (!modal || !order) {
+        return;
+    }
+
+    const form =
+        adminElement("repair-fulfillment-form");
+
+    const orderIdInput =
+        adminElement(
+            "repair-fulfillment-order-id"
+        );
+
+    const orderDisplay =
+        adminElement(
+            "repair-fulfillment-order-display"
+        );
+
+    const proxyDisplay =
+        adminElement(
+            "repair-fulfillment-proxy-display"
+        );
+
+    const message =
+        adminElement(
+            "repair-fulfillment-message"
+        );
+
+    const activeAssignment =
+        adminDashboardState.assignments.find(
+            (assignment) =>
+                assignment.order_id ===
+                    order.order_id &&
+                assignment.status === "ACTIVE"
+        );
+
+    if (!activeAssignment) {
+        showAdminToast(
+            "Active proxy assignment not found.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (form) {
+        form.reset();
+    }
+
+    if (orderIdInput) {
+        orderIdInput.value =
+            order.order_id || "";
+    }
+
+    if (orderDisplay) {
+        orderDisplay.value =
+            order.order_id || "";
+    }
+
+    if (proxyDisplay) {
+        proxyDisplay.value =
+            activeAssignment.proxy_number || "—";
+    }
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+
+    modal.classList.remove(
+        "is-hidden"
+    );
+}
+
+
+/**
+ * Close Repair Fulfillment modal.
+ */
+function closeAdminRepairFulfillmentModal() {
+    const modal =
+        adminElement(
+            "repair-fulfillment-modal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add(
+        "is-hidden"
+    );
+
+    const form =
+        adminElement(
+            "repair-fulfillment-form"
+        );
+
+    if (form) {
+        form.reset();
+    }
+
+    const message =
+        adminElement(
+            "repair-fulfillment-message"
+        );
+
+    if (message) {
+        setAdminMessage(
+            message,
+            ""
+        );
+    }
+}
+
+
+/**
+ * Initialize Repair Fulfillment controls.
+ */
+function initAdminFulfillmentRepairControls() {
+    const form =
+        adminElement(
+            "repair-fulfillment-form"
+        );
+
+    if (
+        form &&
+        !form.dataset.initialized
+    ) {
+        form.addEventListener(
+            "submit",
+            handleAdminRepairFulfillmentSubmit
+        );
+
+        form.dataset.initialized =
+            "true";
+    }
+
+    const cancelButton =
+        adminElement(
+            "repair-fulfillment-cancel"
+        );
+
+    if (
+        cancelButton &&
+        !cancelButton.dataset.initialized
+    ) {
+        cancelButton.addEventListener(
+            "click",
+            closeAdminRepairFulfillmentModal
+        );
+
+        cancelButton.dataset.initialized =
+            "true";
+    }
+}
+
+
+/**
+ * Submit Repair Fulfillment.
+ */
+async function handleAdminRepairFulfillmentSubmit(
+    event
+) {
+    event.preventDefault();
+
+    if (
+        adminFulfillmentRepairState.submitting
+    ) {
+        return;
+    }
+
+    const orderId =
+        adminElement(
+            "repair-fulfillment-order-id"
+        )?.value.trim() || "";
+
+    const message =
+        adminElement(
+            "repair-fulfillment-message"
+        );
+
+    const submitButton =
+        adminElement(
+            "repair-fulfillment-submit"
+        );
+
+    if (!orderId) {
+        setAdminMessage(
+            message,
+            "Order ID is required.",
+            "error"
+        );
+
+        return;
+    }
+
+    adminFulfillmentRepairState.submitting =
+        true;
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent =
+            "Repairing...";
+    }
+
+    setAdminMessage(
+        message,
+        "Repairing fulfillment..."
+    );
+
+    try {
+        const supabase =
+            initializeAdminSupabase();
+
+        const {
+            data,
+            error
+        } = await supabase.rpc(
+            "repair_proxy_fulfillment",
+            {
+                p_order_id: orderId
+            }
+        );
+
+        if (error) {
+            throw error;
+        }
+
+        if (!data) {
+            throw new Error(
+                "Fulfillment repair was not completed."
+            );
+        }
+
+        closeAdminRepairFulfillmentModal();
+
+        showAdminToast(
+            "Fulfillment repaired successfully.",
+            "success"
+        );
+
+        await loadAdminDashboardData();
+
+    } catch (error) {
+        console.error(
+            "NexProxy fulfillment repair error:",
+            error
+        );
+
+        setAdminMessage(
+            message,
+            getFriendlyAdminOperationError(
+                error,
+                "Unable to repair fulfillment."
+            ),
+            "error"
+        );
+
+        showAdminToast(
+            "Unable to repair fulfillment.",
+            "error"
+        );
+
+    } finally {
+        adminFulfillmentRepairState.submitting =
+            false;
+
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent =
+                "Repair Fulfillment";
+        }
+    }
+}
+
+/* =========================================================
    PROXY REPLACEMENT OPERATIONS
    ========================================================= */
 
@@ -5267,6 +5713,8 @@ async function initializeAdminApplication() {
         initAdminExtensionControls();
 
         initAdminReplacementControls();
+
+        initAdminFulfillmentRepairControls();
 
         initAdminEditProxyControls();
 

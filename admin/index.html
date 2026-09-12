@@ -1459,6 +1459,122 @@
 
 
         <!-- =====================================================
+     REPAIR FULFILLMENT MODAL
+     ===================================================== -->
+
+        <div
+            id="repair-fulfillment-modal"
+            class="admin-modal is-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="repair-fulfillment-title"
+        >
+            <div class="admin-modal-backdrop"></div>
+
+            <div class="admin-modal-dialog">
+
+                <div class="admin-modal-header">
+
+                    <div>
+
+                        <p class="admin-eyebrow">
+                            Fulfillment
+                        </p>
+
+                        <h2 id="repair-fulfillment-title">
+                            Repair Fulfillment
+                        </h2>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="admin-modal-close"
+                        id="repair-fulfillment-close"
+                        aria-label="Close fulfillment repair"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+                <form
+                    id="repair-fulfillment-form"
+                    class="admin-modal-content"
+                >
+
+                    <input
+                        type="hidden"
+                        id="repair-fulfillment-order-id"
+                        name="orderId"
+                    >
+
+                    <div class="admin-form-group">
+
+                        <label for="repair-fulfillment-order-display">
+                            Order ID
+                        </label>
+
+                        <input
+                            type="text"
+                            id="repair-fulfillment-order-display"
+                            readonly
+                        >
+
+                    </div>
+
+                    <div class="admin-form-group">
+
+                        <label for="repair-fulfillment-proxy-display">
+                            Active Proxy
+                        </label>
+
+                        <input
+                            type="text"
+                            id="repair-fulfillment-proxy-display"
+                            readonly
+                        >
+
+                    </div>
+
+                    <p class="admin-help-text">
+                        This will synchronize the fulfillment record with
+                        the active proxy assignment. Delivery status and
+                        delivery fields will not be changed.
+                    </p>
+
+                    <div
+                        id="repair-fulfillment-message"
+                        class="admin-form-message"
+                        aria-live="polite"
+                    ></div>
+
+                    <div class="admin-modal-actions">
+
+                        <button
+                            type="button"
+                            class="admin-btn admin-btn-secondary"
+                            id="repair-fulfillment-cancel"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="admin-btn admin-btn-primary"
+                            id="repair-fulfillment-submit"
+                        >
+                            Repair Fulfillment
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+        <!-- =====================================================
              EXTENSION MODAL
              ===================================================== -->
 
