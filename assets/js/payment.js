@@ -194,6 +194,27 @@ function initPaymentForm(orderData) {
         return;
     }
 
+    // Prevent duplicate event listeners after UI re-render.
+    if (paymentForm.dataset.nexproxyBound === "true") {
+        return;
+    }
+
+    paymentForm.dataset.nexproxyBound = "true";
+
+    // Do not allow another payment submission after submission/verification.
+    if (
+        orderData.paymentStatus === "PAYMENT_SUBMITTED" ||
+        orderData.paymentStatus === "PAYMENT_VERIFIED"
+    ) {
+        paymentForm
+            .querySelectorAll("input, button")
+            .forEach((element) => {
+                element.disabled = true;
+            });
+
+        return;
+    }
+
     paymentForm.addEventListener(
         "submit",
         async (event) => {
@@ -234,6 +255,13 @@ function initPaymentForm(orderData) {
 
                 return;
             }
+
+            // Prevent double-click / duplicate submission.
+            if (paymentForm.dataset.submitting === "true") {
+                return;
+            }
+
+            paymentForm.dataset.submitting = "true";
 
             if (submitButton) {
                 submitButton.disabled = true;
@@ -369,6 +397,8 @@ function initPaymentForm(orderData) {
                     JSON.stringify(orderData)
                 );
 
+                paymentForm.dataset.submitting = "false";
+
                 populatePaymentSummary(
                     orderData
                 );
@@ -393,6 +423,8 @@ function initPaymentForm(orderData) {
                         "aria-busy"
                     );
                 }
+
+                paymentForm.dataset.submitting = "false";
             }
         }
     );
