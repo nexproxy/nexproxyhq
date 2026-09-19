@@ -832,6 +832,7 @@ const adminDashboardState = {
     inventory: [],
     paymentSettings: [],
     customers: [],
+    activityLogs: [],
     customerFilter: "ALL",
     customerSearch: "",
     inventoryFilter: "ALL",
@@ -852,7 +853,8 @@ async function loadAdminDashboardData() {
     assignmentsResult,
     inventoryResult,
     paymentSettingsResult,
-    fulfillmentsResult
+    fulfillmentsResult,
+    activityLogsResult
 ] = await Promise.all([
         supabase
             .from("orders")
@@ -881,7 +883,15 @@ async function loadAdminDashboardData() {
 
         supabase.rpc(
             "get_admin_fulfillment_status"
-        )
+        ),
+
+        supabase
+            .from("admin_activity_log")
+            .select("*")
+            .order("created_at", {
+                ascending: false
+            })
+            .limit(100)
     ]);
 
     if (ordersResult.error) {
@@ -902,6 +912,10 @@ async function loadAdminDashboardData() {
 
     if (fulfillmentsResult.error) {
         throw fulfillmentsResult.error;
+    }
+
+    if (activityLogsResult.error) {
+    throw activityLogsResult.error;
     }
 
     adminDashboardState.orders =
@@ -929,9 +943,9 @@ async function loadAdminDashboardData() {
         ? fulfillmentsResult.data
         : [];
 
-    adminDashboardState.fulfillments =
-    Array.isArray(fulfillmentsResult.data)
-        ? fulfillmentsResult.data
+    adminDashboardState.activityLogs =
+    Array.isArray(activityLogsResult.data)
+        ? activityLogsResult.data
         : [];
 
     adminDashboardState.customers =
@@ -956,6 +970,91 @@ async function loadAdminDashboardData() {
 
     initAdminProxyInventoryControls();
 
+    renderAdminActivityLog();
+
+}
+
+/**
+ * Render admin activity log.
+ */
+function renderAdminActivityLog() {
+    const tableBody =
+        adminElement("activity-table-body");
+
+    if (!tableBody) {
+        return;
+    }
+
+    tableBody.innerHTML = "";
+
+    const logs =
+        Array.isArray(adminDashboardState.activityLogs)
+            ? adminDashboardState.activityLogs
+            : [];
+
+    if (!logs.length) {
+        const row = document.createElement("tr");
+
+        const cell = document.createElement("td");
+
+        cell.colSpan = 5;
+        cell.textContent = "No activity recorded yet.";
+
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+
+        return;
+    }
+
+    logs.forEach((log) => {
+        const row = document.createElement("tr");
+
+        const timeCell = document.createElement("td");
+        const adminCell = document.createElement("td");
+        const actionCell = document.createElement("td");
+        const entityCell = document.createElement("td");
+        const detailsCell = document.createElement("td");
+
+        timeCell.textContent =
+            log.created_at
+                ? new Date(log.created_at).toLocaleString()
+                : "—";
+
+        adminCell.textContent =
+            log.admin_user_id || "—";
+
+        actionCell.textContent =
+            log.action || "—";
+
+        entityCell.textContent =
+            [
+                log.entity_type,
+                log.entity_id
+            ]
+                .filter(Boolean)
+                .join(": ") || "—";
+
+        if (log.details) {
+            try {
+                detailsCell.textContent =
+                    typeof log.details === "string"
+                        ? log.details
+                        : JSON.stringify(log.details);
+            } catch (error) {
+                detailsCell.textContent = "—";
+            }
+        } else {
+            detailsCell.textContent = "—";
+        }
+
+        row.appendChild(timeCell);
+        row.appendChild(adminCell);
+        row.appendChild(actionCell);
+        row.appendChild(entityCell);
+        row.appendChild(detailsCell);
+
+        tableBody.appendChild(row);
+    });
 }
 
 
